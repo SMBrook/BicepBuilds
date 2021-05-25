@@ -4,7 +4,7 @@ param allowVirtualNetworkAccess string
 param allowForwardedTraffic string
 param allowGatewayTransit string
 param useRemoteGateways string
-param wvdVnetId string = resourceId('Microsoft.Network/virtualNetworks',vNet1Name)
+param wvdVnetId string
 
 resource VnetPeering2 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2020-06-01' = {
   name: DestinationPeeringName
