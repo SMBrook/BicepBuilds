@@ -42,7 +42,7 @@ resource wvdhpds 'Microsoft.Insights/diagnosticSettings@2017-05-01-preview' = {
   }
 }
 
-resource wvdwsds 'Microsoft.Insights/diagnosticSettings@2017-05-01-preview' = {
+resource wvdwsds 'microsoft.insights/diagnosticSettings@2017-05-01-preview' = {
   scope: workspace
   name: 'workspacepool-diag'
   properties: {

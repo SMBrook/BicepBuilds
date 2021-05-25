@@ -1,9 +1,9 @@
-// Define Networkin parameters
+// Define Networking parameters
 param vnetName string
 param vnetaddressPrefix string
 param subnetPrefix string
-param vnetLocation string = 'northeurope'
-param subnetName string = 'WVD'
+param vnetLocation string
+param subnetName string
 
 //Create Vnet and Subnet
 resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
@@ -25,3 +25,5 @@ resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
     ]
   }
 }
+
+output vnet1id string = vnet.properties.resourceGuid
