@@ -1,5 +1,5 @@
-param vNet2Name string
 param SourcePeeringName string
+param vNet2Name string
 param allowVirtualNetworkAccess string
 param allowForwardedTraffic string
 param allowGatewayTransit string
@@ -13,7 +13,7 @@ resource VnetPeering1 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@
     allowForwardedTraffic: bool(allowForwardedTraffic)
     allowGatewayTransit: bool(allowGatewayTransit)
     useRemoteGateways: bool(useRemoteGateways)
-    remoteVirtualNetwork: {
+  remoteVirtualNetwork: {
       id: wvdVnetIdsource
     }
   }

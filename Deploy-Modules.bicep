@@ -34,7 +34,7 @@ param wvdVnetId string = resourceId('Microsoft.Network/virtualNetworks',vNet1Nam
 
 //Define Azure Files deployment parameters
 param storageaccountlocation string = 'northeurope'
-param storageaccountName string = 'bicepsaazsmblabs13'
+param storageaccountName string = 'bicepsaazsmblabs153'
 param storageaccountkind string = 'FileStorage'
 param storgeaccountglobalRedundancy string = 'Premium_LRS'
 param fileshareFolderName string = 'profilecontainers'
@@ -46,7 +46,7 @@ resource rgwvd 'Microsoft.Resources/resourceGroups@2021-01-01' = {
 }
 
 //Create WVD backplane objects and configure Log Analytics Diagnostics Settings
-module wvdbackplane './wvd-backplane-module.bicep' = {
+module wvdbackplane 'wvd-backplane-module.bicep' = {
   name: 'wvdbackplane'
   scope: resourceGroup(rgwvd.name)
   params: {
@@ -89,7 +89,7 @@ module wvdpeering1 './wvd-peering-source.bicep' = {
     allowForwardedTraffic: allowForwardedTraffic
     allowGatewayTransit: allowGatewayTransit
     useRemoteGateways: useRemoteGateways
-    remoteVirtualNetwork: {
+  remoteVirtualNetwork: {
       id: wvdVnetIdsource
     }
   }
@@ -104,7 +104,7 @@ module wvdpeering2 './wvd-peering-destination.bicep' = {
     allowForwardedTraffic: allowForwardedTraffic
     allowGatewayTransit: allowGatewayTransit
     useRemoteGateways: useRemoteGateways
-    remoteVirtualNetwork: {
+  remoteVirtualNetwork: {
       id: wvdVnetIdsource
     }
   }
