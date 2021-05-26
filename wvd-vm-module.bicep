@@ -5,7 +5,7 @@ param existingSubnetName string
 @maxLength(62)
 param dnsLabelPrefix string
 
-param vmSize string = 'Standard_A2_v2'
+param vmSize string
 param domainToJoin string
 param domainUserName string
 
@@ -24,9 +24,9 @@ param vmAdminPassword string
 
 param location string = resourceGroup().location
 var storageAccountName = uniqueString(resourceGroup().id, deployment().name)
-var imagePublisher = 'MicrosoftWindowsServer'
-var imageOffer = 'WindowsServer'
-var windowsOSVersion = '2019-Datacenter'
+var imagePublisher = 'microsoftwindowsdesktop'
+var imageOffer = 'office-365'
+var windowsOSVersion = '20h2-evd-o365pp-g2'
 var nicName = '${dnsLabelPrefix}-nic'
 var publicIpName = '${dnsLabelPrefix}-pip'
 var subnetId = resourceId('Microsoft.Network/virtualNetworks/subnets', existingVnetName, existingSubnetName)

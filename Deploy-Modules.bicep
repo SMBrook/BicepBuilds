@@ -36,7 +36,7 @@ param existingSubnetName string = subnetName
 @minLength(1)
 @maxLength(62)
 param dnsLabelPrefix string
-param vmSize string = 'Standard_A2_v2'
+param vmSize string = 'Standard_B2ms'
 param domainToJoin string
 param domainUserName string
 @secure()

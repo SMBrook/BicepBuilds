@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.3.539.46024",
-      "templateHash": "6278696693507720321"
+      "templateHash": "15183486057806303542"
     }
   },
   "parameters": {
@@ -144,6 +144,10 @@
     "publicIpName": {
       "type": "string",
       "defaultValue": "SHPIP1"
+    },
+    "dnsservers": {
+      "type": "string",
+      "defaultValue": "10.1.0.4"
     }
   },
   "functions": [],
@@ -548,6 +552,9 @@
           },
           "subnetName": {
             "value": "[parameters('subnetName')]"
+          },
+          "dnsservers": {
+            "value": "[parameters('dnsservers')]"
           }
         },
         "template": {
@@ -557,7 +564,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "16402267554307855545"
+              "templateHash": "7790762408323139275"
             }
           },
           "parameters": {
@@ -575,6 +582,9 @@
             },
             "subnetName": {
               "type": "string"
+            },
+            "dnsservers": {
+              "type": "string"
             }
           },
           "functions": [],
@@ -588,6 +598,11 @@
                 "addressSpace": {
                   "addressPrefixes": [
                     "[parameters('vnetaddressPrefix')]"
+                  ]
+                },
+                "dhcpOptions": {
+                  "dnsServers": [
+                    "[parameters('dnsservers')]"
                   ]
                 },
                 "subnets": [
@@ -865,7 +880,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "12315125586535193693"
+              "templateHash": "4471061841128359667"
             }
           },
           "parameters": {
@@ -914,9 +929,9 @@
           "functions": [],
           "variables": {
             "storageAccountName": "[uniqueString(resourceGroup().id, deployment().name)]",
-            "imagePublisher": "MicrosoftWindowsServer",
-            "imageOffer": "WindowsServer",
-            "windowsOSVersion": "2019-Datacenter",
+            "imagePublisher": "microsoftwindowsdesktop",
+            "imageOffer": "office-365",
+            "windowsOSVersion": "20h2-evd-o365pp-g2",
             "nicName": "[format('{0}-nic', parameters('dnsLabelPrefix'))]",
             "publicIpName": "[format('{0}-pip', parameters('dnsLabelPrefix'))]",
             "subnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('existingSubnetName'))]"
