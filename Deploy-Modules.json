@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.3.539.46024",
-      "templateHash": "13983084390604030532"
+      "templateHash": "10653714954383467860"
     }
   },
   "parameters": {
@@ -97,13 +97,25 @@
       "type": "string",
       "defaultValue": "[parameters('vNet2Name')]"
     },
+    "remoteVnetName": {
+      "type": "string",
+      "defaultValue": "Identity-vnet"
+    },
+    "remoteVnetRg": {
+      "type": "string",
+      "defaultValue": "AzDemoSB-Identity-rg"
+    },
+    "identityVnetID": {
+      "type": "string",
+      "defaultValue": "[resourceId('Microsoft.Network/virtualNetworks', parameters('remoteVnetName'))]"
+    },
     "storageaccountlocation": {
       "type": "string",
       "defaultValue": "northeurope"
     },
     "storageaccountName": {
       "type": "string",
-      "defaultValue": "bicepsaazsmblabs153"
+      "defaultValue": "bicepsaazsmblabs"
     },
     "storageaccountkind": {
       "type": "string",
@@ -124,12 +136,6 @@
       "type": "Microsoft.Resources/resourceGroups",
       "apiVersion": "2021-01-01",
       "name": "[parameters('resourceGroupPrefrix')]",
-      "location": "northeurope"
-    },
-    {
-      "type": "Microsoft.Resources/resourceGroups",
-      "apiVersion": "2021-01-01",
-      "name": "AzDemoSB-Identity-rg",
       "location": "northeurope"
     },
     {
@@ -193,7 +199,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "15571897234111597468"
+              "templateHash": "7574395011571163720"
             }
           },
           "parameters": {
@@ -336,7 +342,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.3.539.46024",
-                      "templateHash": "5251152976212156215"
+                      "templateHash": "13650316137738058511"
                     }
                   },
                   "parameters": {
@@ -345,7 +351,7 @@
                     },
                     "logAnalyticslocation": {
                       "type": "string",
-                      "defaultValue": "westeurope"
+                      "defaultValue": "northeurope"
                     },
                     "logAnalyticsWorkspaceSku": {
                       "type": "string",
@@ -594,13 +600,18 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "wvdpeering",
+      "name": "wvdpeering1",
       "resourceGroup": "[parameters('resourceGroupPrefrix')]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
         },
         "mode": "Incremental",
+        "parameters": {
+          "identityVnetID": {
+            "value": "[parameters('identityVnetID')]"
+          }
+        },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
           "contentVersion": "1.0.0.0",
@@ -608,7 +619,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "5655709492982047478"
+              "templateHash": "12258603494416537965"
             }
           },
           "parameters": {
@@ -616,13 +627,8 @@
               "type": "string",
               "defaultValue": "bicep-vnet"
             },
-            "remoteVnetName": {
-              "type": "string",
-              "defaultValue": "Identity-vnet"
-            },
-            "remoteVnetRg": {
-              "type": "string",
-              "defaultValue": "AZDemoSB-Bicep-WVD"
+            "identityVnetID": {
+              "type": "string"
             }
           },
           "functions": [],
@@ -637,7 +643,7 @@
                 "allowGatewayTransit": false,
                 "useRemoteGateways": false,
                 "remoteVirtualNetwork": {
-                  "id": "[resourceId(parameters('remoteVnetRg'), 'Microsoft.Network/virtualNetworks', parameters('remoteVnetName'))]"
+                  "id": "[parameters('identityVnetID')]"
                 }
               }
             }
@@ -665,7 +671,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "15611143127618665331"
+              "templateHash": "7828532689449147212"
             }
           },
           "parameters": {
@@ -679,7 +685,7 @@
             },
             "remoteVnetRg2": {
               "type": "string",
-              "defaultValue": "AzDemoSB-Identity-rg"
+              "defaultValue": "AZDemoSB-Bicep-WVD"
             }
           },
           "functions": [],
@@ -700,10 +706,7 @@
             }
           ]
         }
-      },
-      "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', 'AzDemoSB-Identity-rg')]"
-      ]
+      }
     },
     {
       "type": "Microsoft.Resources/deployments",

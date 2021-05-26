@@ -24,8 +24,11 @@ param vnetLocation string = 'northeurope'
 param subnetName string = 'bicep-subnet'
 param vNet1Name string = 'bicep-vnet'
 param vNet2Name string = 'Identity-vnet'
-param DestinationPeeringName string = 'Testpeer3'
+param DestinationPeeringName string = 'Testpeer43'
 param remoteVnetId string = vNet2Name
+param remoteVnetName string = 'Identity-vnet'
+param remoteVnetRg string = 'AzDemoSB-Identity-rg'
+param identityVnetID string = resourceId(remoteVnetRg, 'Microsoft.Network/virtualNetworks', remoteVnetName)
 
 //Define Azure Files deployment parameters
 param storageaccountlocation string = 'northeurope'
@@ -81,8 +84,11 @@ module wvdnetwork './wvd-network-module.bicep' = {
 }
 
 module wvdpeering './wvd-peering-module.bicep' = {
-  name: 'wvdpeering'
+  name: 'wvdpeering1'
   scope: resourceGroup(rgwvd.name)
+  params:{
+    identityVnetID : identityVnetID
+  }
 }
 
 module wvdpeeringid './wvd-peering-id-module.bicep' = {
