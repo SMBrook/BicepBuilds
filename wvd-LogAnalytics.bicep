@@ -1,6 +1,6 @@
 //Define Log Analytics parameters
 param logAnalyticsWorkspaceName string
-param logAnalyticslocation string = 'westeurope'
+param logAnalyticslocation string = 'northeurope'
 param logAnalyticsWorkspaceSku string = 'pergb2018'
 param hostpoolName string
 param workspaceName string

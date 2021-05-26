@@ -1,6 +1,6 @@
 param localVnetName string = 'bicep-vnet'
 param remoteVnetName string = 'Identity-vnet'
-param remoteVnetRg string = 'AZDemoSB-Bicep-WVD'
+param remoteVnetRg string = 'AzDemoSB-Identity-rg'
 
 resource peerid 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-05-01' = {
   name: '${localVnetName}/peering-to-remote-vnet'

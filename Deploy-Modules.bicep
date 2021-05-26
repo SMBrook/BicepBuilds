@@ -27,10 +27,9 @@ param vNet2Name string = 'Identity-vnet'
 param DestinationPeeringName string = 'Testpeer3'
 param remoteVnetId string = vNet2Name
 
-
 //Define Azure Files deployment parameters
 param storageaccountlocation string = 'northeurope'
-param storageaccountName string = 'bicepsaazsmblabs153'
+param storageaccountName string = 'bicepsaazsmblabs'
 param storageaccountkind string = 'FileStorage'
 param storgeaccountglobalRedundancy string = 'Premium_LRS'
 param fileshareFolderName string = 'profilecontainers'
@@ -39,6 +38,11 @@ param fileshareFolderName string = 'profilecontainers'
 resource rgwvd 'Microsoft.Resources/resourceGroups@2021-01-01' = {
   name : '${resourceGroupPrefrix}'
   location : 'northeurope'
+}
+
+// Identity Existing Sub
+resource rgwvdIdentity 'Microsoft.Resources/resourceGroups@2021-01-01' existing = {
+  name: 'AzDemoSB-Identity-rg'
 }
 
 //Create WVD backplane objects and configure Log Analytics Diagnostics Settings
@@ -83,7 +87,7 @@ module wvdpeering './wvd-peering-module.bicep' = {
 
 module wvdpeeringid './wvd-peering-id-module.bicep' = {
   name: 'wvdpeeringid'
-  scope: resourceGroup(Microsoft)
+  scope: resourceGroup(rgwvdIdentity.name)
 }
 
 //Create WVD Azure File Services and FileShare`
