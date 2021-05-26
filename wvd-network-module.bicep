@@ -5,6 +5,7 @@ param subnetPrefix string
 param vnetLocation string
 param subnetName string
 
+
 //Create Vnet and Subnet
 resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
   name: vnetName
@@ -27,3 +28,5 @@ resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
 }
 
 output vnet1id string = vnet.properties.resourceGuid
+
+

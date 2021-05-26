@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
 //Define WVD deployment parameters
-param resourceGroupPrefrix string = 'AZDemosSB-Bicep-WVD2'
+param resourceGroupPrefrix string = 'AZDemoSB-Bicep-WVD'
 param hostpoolName string = 'myBicepHostpool'
 param hostpoolFriendlyName string = 'My Bicep deployed Hostpool'
 param appgroupName string = 'myBicepAppGroup'
@@ -13,6 +13,8 @@ param wvdbackplanelocation string = 'eastus'
 param hostPoolType string = 'pooled'
 param loadBalancerType string = 'BreadthFirst'
 param logAnalyticsWorkspaceName string = 'AZDemosSBLAWorkspace'
+param rgidentity string = 'AzDemoSB-Identity-rg'
+
 
 //Define Networking deployment parameters
 param vnetName string = 'bicep-vnet'
@@ -22,15 +24,9 @@ param vnetLocation string = 'northeurope'
 param subnetName string = 'bicep-subnet'
 param vNet1Name string = 'bicep-vnet'
 param vNet2Name string = 'Identity-vnet'
-param SourcePeeringName string = 'BiceptoIdentity'
-param DestinationPeeringName string = 'IdentitytoBicep'
-param allowVirtualNetworkAccess string = 'true'
-param allowForwardedTraffic string = 'false'
-param allowGatewayTransit string = 'false'
-param useRemoteGateways string = 'false'
+param DestinationPeeringName string = 'Testpeer3'
 param remoteVnetId string = vNet2Name
-param wvdVnetIdsource string = resourceId('Microsoft.Network/virtualNetworks',vNet2Name)
-param wvdVnetId string = resourceId('Microsoft.Network/virtualNetworks',vNet1Name)
+
 
 //Define Azure Files deployment parameters
 param storageaccountlocation string = 'northeurope'
@@ -80,38 +76,15 @@ module wvdnetwork './wvd-network-module.bicep' = {
   }
 }
 
-//Create Peering to Identity Subnet
-module wvdpeering1 './wvd-peering-source.bicep' = {
-  name: SourcePeeringName
+module wvdpeering './wvd-peering-module.bicep' = {
+  name: 'wvdpeering'
   scope: resourceGroup(rgwvd.name)
-  params: {
-    allowVirtualNetworkAccess: allowVirtualNetworkAccess
-    allowForwardedTraffic: allowForwardedTraffic
-    allowGatewayTransit: allowGatewayTransit
-    useRemoteGateways: useRemoteGateways
-  remoteVirtualNetwork: {
-      id: wvdVnetIdsource
-    }
-  }
 }
 
-// Create Peering from Identity Subnet
-module wvdpeering2 './wvd-peering-destination.bicep' = {
-  name: DestinationPeeringName
-  scope: resourceGroup(rgwvd.name)
-  params: {
-    allowVirtualNetworkAccess: allowVirtualNetworkAccess
-    allowForwardedTraffic: allowForwardedTraffic
-    allowGatewayTransit: allowGatewayTransit
-    useRemoteGateways: useRemoteGateways
-  remoteVirtualNetwork: {
-      id: wvdVnetIdsource
-    }
-  }
+module wvdpeeringid './wvd-peering-id-module.bicep' = {
+  name: 'wvdpeeringid'
+  scope: resourceGroup(Microsoft)
 }
-
-
-
 
 //Create WVD Azure File Services and FileShare`
 module wvdFileServices './wvd-fileservices-module.bicep' = {
