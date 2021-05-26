@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.3.539.46024",
-      "templateHash": "10653714954383467860"
+      "templateHash": "6278696693507720321"
     }
   },
   "parameters": {
@@ -57,10 +57,6 @@
       "type": "string",
       "defaultValue": "AZDemosSBLAWorkspace"
     },
-    "rgidentity": {
-      "type": "string",
-      "defaultValue": "AzDemoSB-Identity-rg"
-    },
     "vnetName": {
       "type": "string",
       "defaultValue": "bicep-vnet"
@@ -81,33 +77,13 @@
       "type": "string",
       "defaultValue": "bicep-subnet"
     },
-    "vNet1Name": {
-      "type": "string",
-      "defaultValue": "bicep-vnet"
-    },
-    "vNet2Name": {
+    "HubvnetName": {
       "type": "string",
       "defaultValue": "Identity-vnet"
     },
-    "DestinationPeeringName": {
-      "type": "string",
-      "defaultValue": "Testpeer3"
-    },
-    "remoteVnetId": {
-      "type": "string",
-      "defaultValue": "[parameters('vNet2Name')]"
-    },
-    "remoteVnetName": {
-      "type": "string",
-      "defaultValue": "Identity-vnet"
-    },
-    "remoteVnetRg": {
+    "HubvnetRg": {
       "type": "string",
       "defaultValue": "AzDemoSB-Identity-rg"
-    },
-    "identityVnetID": {
-      "type": "string",
-      "defaultValue": "[resourceId('Microsoft.Network/virtualNetworks', parameters('remoteVnetName'))]"
     },
     "storageaccountlocation": {
       "type": "string",
@@ -128,6 +104,46 @@
     "fileshareFolderName": {
       "type": "string",
       "defaultValue": "profilecontainers"
+    },
+    "existingVnetName": {
+      "type": "string",
+      "defaultValue": "[parameters('vnetName')]"
+    },
+    "existingSubnetName": {
+      "type": "string",
+      "defaultValue": "[parameters('subnetName')]"
+    },
+    "dnsLabelPrefix": {
+      "type": "string",
+      "maxLength": 62,
+      "minLength": 1
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_A2_v2"
+    },
+    "domainToJoin": {
+      "type": "string"
+    },
+    "domainUserName": {
+      "type": "string"
+    },
+    "domainPassword": {
+      "type": "secureString"
+    },
+    "vmAdminUsername": {
+      "type": "string"
+    },
+    "vmAdminPassword": {
+      "type": "secureString"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[parameters('vnetLocation')]"
+    },
+    "publicIpName": {
+      "type": "string",
+      "defaultValue": "SHPIP1"
     }
   },
   "functions": [],
@@ -541,7 +557,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "5783966795102525865"
+              "templateHash": "16402267554307855545"
             }
           },
           "parameters": {
@@ -588,7 +604,7 @@
           "outputs": {
             "vnet1id": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))).resourceGuid]"
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
             }
           }
         }
@@ -600,7 +616,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "wvdpeering1",
+      "name": "[format('{0}wvdpeering1', 'wvdnetwork')]",
       "resourceGroup": "[parameters('resourceGroupPrefrix')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -608,8 +624,11 @@
         },
         "mode": "Incremental",
         "parameters": {
+          "peeringnamefromwvdvnet": {
+            "value": "[format('{0}/{1}-to-{2}', parameters('vnetName'), parameters('vnetName'), parameters('HubvnetName'))]"
+          },
           "identityVnetID": {
-            "value": "[parameters('identityVnetID')]"
+            "value": "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('HubvnetRg')), 'Microsoft.Network/virtualNetworks', parameters('HubvnetName'))]"
           }
         },
         "template": {
@@ -619,15 +638,14 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "12258603494416537965"
+              "templateHash": "15685200968820027882"
             }
           },
           "parameters": {
-            "localVnetName": {
-              "type": "string",
-              "defaultValue": "bicep-vnet"
-            },
             "identityVnetID": {
+              "type": "string"
+            },
+            "peeringnamefromwvdvnet": {
               "type": "string"
             }
           },
@@ -636,7 +654,7 @@
             {
               "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
               "apiVersion": "2020-05-01",
-              "name": "[format('{0}/peering-to-remote-vnet', parameters('localVnetName'))]",
+              "name": "[parameters('peeringnamefromwvdvnet')]",
               "properties": {
                 "allowVirtualNetworkAccess": true,
                 "allowForwardedTraffic": false,
@@ -651,19 +669,28 @@
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupPrefrix'))]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupPrefrix'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupPrefrix')), 'Microsoft.Resources/deployments', 'wvdnetwork')]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "wvdpeeringid",
+      "name": "[format('{0}wvdpeeringid', 'wvdnetwork')]",
       "resourceGroup": "AzDemoSB-Identity-rg",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
         },
         "mode": "Incremental",
+        "parameters": {
+          "peeringnamefromhubvnet": {
+            "value": "[format('{0}/{1}-to-{2}', parameters('HubvnetName'), parameters('HubvnetName'), parameters('vnetName'))]"
+          },
+          "wvdvnetID": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupPrefrix')), 'Microsoft.Resources/deployments', 'wvdnetwork'), '2019-10-01').outputs.vnet1id.value]"
+          }
+        },
         "template": {
           "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
           "contentVersion": "1.0.0.0",
@@ -671,21 +698,15 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "7828532689449147212"
+              "templateHash": "7169430765622565429"
             }
           },
           "parameters": {
-            "localVnetName2": {
-              "type": "string",
-              "defaultValue": "Identity-vnet"
+            "wvdvnetID": {
+              "type": "string"
             },
-            "remoteVnetName2": {
-              "type": "string",
-              "defaultValue": "bicep-vnet"
-            },
-            "remoteVnetRg2": {
-              "type": "string",
-              "defaultValue": "AZDemoSB-Bicep-WVD"
+            "peeringnamefromhubvnet": {
+              "type": "string"
             }
           },
           "functions": [],
@@ -693,20 +714,23 @@
             {
               "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
               "apiVersion": "2020-05-01",
-              "name": "[format('{0}/peering-to-remote-vnet', parameters('localVnetName2'))]",
+              "name": "[parameters('peeringnamefromhubvnet')]",
               "properties": {
                 "allowVirtualNetworkAccess": true,
                 "allowForwardedTraffic": false,
                 "allowGatewayTransit": false,
                 "useRemoteGateways": false,
                 "remoteVirtualNetwork": {
-                  "id": "[resourceId(parameters('remoteVnetRg2'), 'Microsoft.Network/virtualNetworks', parameters('remoteVnetName2'))]"
+                  "id": "[parameters('wvdvnetID')]"
                 }
               }
             }
           ]
         }
-      }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupPrefrix')), 'Microsoft.Resources/deployments', 'wvdnetwork')]"
+      ]
     },
     {
       "type": "Microsoft.Resources/deployments",
@@ -786,6 +810,243 @@
               "name": "[variables('filesharelocation')]",
               "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccountName'))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupPrefrix'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "wvdfirstsessionhost",
+      "resourceGroup": "[parameters('resourceGroupPrefrix')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "dnsLabelPrefix": {
+            "value": "[parameters('dnsLabelPrefix')]"
+          },
+          "vmSize": {
+            "value": "[parameters('vmSize')]"
+          },
+          "vmAdminUsername": {
+            "value": "[parameters('vmAdminUsername')]"
+          },
+          "vmAdminPassword": {
+            "value": "[parameters('vmAdminPassword')]"
+          },
+          "domainToJoin": {
+            "value": "[parameters('domainToJoin')]"
+          },
+          "domainUserName": {
+            "value": "[parameters('domainUserName')]"
+          },
+          "domainPassword": {
+            "value": "[parameters('domainPassword')]"
+          },
+          "existingSubnetName": {
+            "value": "[parameters('existingSubnetName')]"
+          },
+          "existingVnetName": {
+            "value": "[parameters('existingVnetName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.3.539.46024",
+              "templateHash": "12315125586535193693"
+            }
+          },
+          "parameters": {
+            "existingVnetName": {
+              "type": "string"
+            },
+            "existingSubnetName": {
+              "type": "string"
+            },
+            "dnsLabelPrefix": {
+              "type": "string",
+              "maxLength": 62,
+              "minLength": 1
+            },
+            "vmSize": {
+              "type": "string",
+              "defaultValue": "Standard_A2_v2"
+            },
+            "domainToJoin": {
+              "type": "string"
+            },
+            "domainUserName": {
+              "type": "string"
+            },
+            "domainPassword": {
+              "type": "secureString"
+            },
+            "domainJoinOptions": {
+              "type": "int",
+              "defaultValue": 3,
+              "metadata": {
+                "description": "Set of bit flags that define the join options. Default value of 3 is a combination of NETSETUP_JOIN_DOMAIN (0x00000001) & NETSETUP_ACCT_CREATE (0x00000002) i.e. will join the domain and create the account on the domain. For more information see https://msdn.microsoft.com/en-us/library/aa392154(v=vs.85).aspx"
+              }
+            },
+            "vmAdminUsername": {
+              "type": "string"
+            },
+            "vmAdminPassword": {
+              "type": "secureString"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            }
+          },
+          "functions": [],
+          "variables": {
+            "storageAccountName": "[uniqueString(resourceGroup().id, deployment().name)]",
+            "imagePublisher": "MicrosoftWindowsServer",
+            "imageOffer": "WindowsServer",
+            "windowsOSVersion": "2019-Datacenter",
+            "nicName": "[format('{0}-nic', parameters('dnsLabelPrefix'))]",
+            "publicIpName": "[format('{0}-pip', parameters('dnsLabelPrefix'))]",
+            "subnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('existingSubnetName'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2020-06-01",
+              "name": "[variables('publicIpName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                  "domainNameLabel": "[parameters('dnsLabelPrefix')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2020-08-01-preview",
+              "name": "[variables('storageAccountName')]",
+              "location": "[parameters('location')]",
+              "kind": "StorageV2",
+              "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkInterfaces",
+              "apiVersion": "2020-06-01",
+              "name": "[variables('nicName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "privateIPAllocationMethod": "Dynamic",
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
+                      },
+                      "subnet": {
+                        "id": "[variables('subnetId')]"
+                      }
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2020-06-01",
+              "name": "[parameters('dnsLabelPrefix')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                  "computerName": "[parameters('dnsLabelPrefix')]",
+                  "adminUsername": "[parameters('vmAdminUsername')]",
+                  "adminPassword": "[parameters('vmAdminPassword')]"
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "[variables('imagePublisher')]",
+                    "offer": "[variables('imageOffer')]",
+                    "sku": "[variables('windowsOSVersion')]",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "name": "[format('{0}-OsDisk', parameters('dnsLabelPrefix'))]",
+                    "caching": "ReadWrite",
+                    "createOption": "FromImage"
+                  },
+                  "dataDisks": [
+                    {
+                      "name": "[format('{0}-DataDisk', parameters('dnsLabelPrefix'))]",
+                      "caching": "None",
+                      "createOption": "Empty",
+                      "diskSizeGB": 1024,
+                      "lun": 0
+                    }
+                  ]
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]"
+                    }
+                  ]
+                },
+                "diagnosticsProfile": {
+                  "bootDiagnostics": {
+                    "enabled": true,
+                    "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))).primaryEndpoints.blob]"
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('nicName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines/extensions",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/joindomain', parameters('dnsLabelPrefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "JsonADDomainExtension",
+                "typeHandlerVersion": "1.3",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                  "name": "[parameters('domainToJoin')]",
+                  "user": "[format('{0}\\{1}', parameters('domainToJoin'), parameters('domainUserName'))]",
+                  "restart": true,
+                  "options": "[parameters('domainJoinOptions')]"
+                },
+                "protectedSettings": {
+                  "password": "[parameters('domainPassword')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('dnsLabelPrefix'))]"
               ]
             }
           ]

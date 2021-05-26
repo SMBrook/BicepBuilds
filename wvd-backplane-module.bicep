@@ -16,6 +16,7 @@ param logAnalyticsWorkspaceSku string = 'pergb2018'
 param logAnalyticsResourceGroup string
 param wvdBackplaneResourceGroup string
 
+
 //Create WVD Hostpool
 resource hp 'Microsoft.DesktopVirtualization/hostPools@2021-02-01-preview' = {
   name: hostpoolName
@@ -67,5 +68,4 @@ module wvdmonitor './wvd-LogAnalytics.bicep' = {
   }
 }
 
-  
   

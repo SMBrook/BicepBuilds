@@ -1,8 +1,8 @@
-param localVnetName string = 'bicep-vnet'
 param identityVnetID string
+param peeringnamefromwvdvnet string
 
 resource peerid 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-05-01' = {
-  name: '${localVnetName}/peering-to-remote-vnet'
+  name: peeringnamefromwvdvnet
   properties: {
     allowVirtualNetworkAccess: true
     allowForwardedTraffic: false

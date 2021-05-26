@@ -1,8 +1,8 @@
-param localVnetName2 string = 'Identity-vnet'
 param wvdvnetID string
+param peeringnamefromhubvnet string
 
 resource peer 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-05-01' = {
-  name: '${localVnetName2}/peering-to-remote-vnet'
+  name: peeringnamefromhubvnet
   properties: {
     allowVirtualNetworkAccess: true
     allowForwardedTraffic: false

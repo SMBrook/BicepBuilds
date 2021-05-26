@@ -13,8 +13,6 @@ param wvdbackplanelocation string = 'eastus'
 param hostPoolType string = 'pooled'
 param loadBalancerType string = 'BreadthFirst'
 param logAnalyticsWorkspaceName string = 'AZDemosSBLAWorkspace'
-param rgidentity string = 'AzDemoSB-Identity-rg'
-
 
 //Define Networking deployment parameters
 param vnetName string = 'bicep-vnet'
@@ -22,12 +20,8 @@ param vnetaddressPrefix string ='10.50.0.0/23'
 param subnetPrefix string = '10.50.1.0/24'
 param vnetLocation string = 'northeurope'
 param subnetName string = 'bicep-subnet'
-param vNet1Name string = 'bicep-vnet'
-param vNet2Name string = 'Identity-vnet'
-param DestinationPeeringName string = 'Testpeer43'
-param remoteVnetId string = vNet2Name
-param remoteVnetName string = 'Identity-vnet'
-param remoteVnetRg string = 'AzDemoSB-Identity-rg'
+param HubvnetName string = 'Identity-vnet'
+param HubvnetRg string = 'AzDemoSB-Identity-rg'
 
 //Define Azure Files deployment parameters
 param storageaccountlocation string = 'northeurope'
@@ -35,6 +29,24 @@ param storageaccountName string = 'bicepsaazsmblabs'
 param storageaccountkind string = 'FileStorage'
 param storgeaccountglobalRedundancy string = 'Premium_LRS'
 param fileshareFolderName string = 'profilecontainers'
+
+//Define VM Parameters
+param existingVnetName string = vnetName
+param existingSubnetName string = subnetName
+@minLength(1)
+@maxLength(62)
+param dnsLabelPrefix string
+param vmSize string = 'Standard_A2_v2'
+param domainToJoin string
+param domainUserName string
+@secure()
+param domainPassword string
+param vmAdminUsername string
+@secure()
+param vmAdminPassword string
+param location string = vnetLocation
+param publicIpName string = 'SHPIP1'
+param dnsservers string = '10.1.0.4'
 
 //Create Resource Groups
 resource rgwvd 'Microsoft.Resources/resourceGroups@2021-01-01' = {
@@ -49,8 +61,8 @@ resource rgwvdIdentity 'Microsoft.Resources/resourceGroups@2021-01-01' existing 
 
 //Get Existing Identity VNet Details
 resource identityvnet 'Microsoft.Network/virtualNetworks@2020-11-01' existing = {
-  name: remoteVnetName
-  scope: resourceGroup(remoteVnetRg)
+  name: HubvnetName
+  scope: resourceGroup(HubvnetRg)
 }
 
 //Create WVD backplane objects and configure Log Analytics Diagnostics Settings
@@ -85,6 +97,7 @@ module wvdnetwork './wvd-network-module.bicep' = {
     subnetPrefix : subnetPrefix
     vnetLocation : vnetLocation
     subnetName : subnetName
+    dnsservers : dnsservers
   }
 }
 
@@ -92,6 +105,7 @@ module wvdpeering './wvd-peering-module.bicep' = {
   name: '${wvdnetwork.name}wvdpeering1'
   scope: resourceGroup(rgwvd.name)
   params:{
+    peeringnamefromwvdvnet : '${vnetName}/${vnetName}-to-${identityvnet.name}'
     identityVnetID : identityvnet.id
   }
 }
@@ -100,6 +114,7 @@ module wvdpeeringid './wvd-peering-id-module.bicep' = {
   name: '${wvdnetwork.name}wvdpeeringid'
   scope: resourceGroup(rgwvdIdentity.name)
   params:{
+    peeringnamefromhubvnet : '${identityvnet.name}/${identityvnet.name}-to-${vnetName}'
     wvdvnetID : wvdnetwork.outputs.vnet1id
   }
 }
@@ -118,4 +133,22 @@ module wvdFileServices './wvd-fileservices-module.bicep' = {
 }
 
 
+//Create WVD Session Host
+
+module vmcreation './wvd-vm-module.bicep' = {
+  name: 'wvdfirstsessionhost'
+  scope: resourceGroup(rgwvd.name)
+  params: {
+    dnsLabelPrefix: dnsLabelPrefix
+    vmSize: vmSize
+    vmAdminUsername: vmAdminUsername
+    vmAdminPassword: vmAdminPassword
+    domainToJoin: domainToJoin
+    domainUserName: domainUserName
+    domainPassword: domainPassword
+    existingSubnetName: existingSubnetName
+    existingVnetName: existingVnetName
+   }
+
+}
 
