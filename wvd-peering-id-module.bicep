@@ -1,6 +1,5 @@
 param localVnetName2 string = 'Identity-vnet'
-param remoteVnetName2 string = 'bicep-vnet'
-param remoteVnetRg2 string = 'AZDemoSB-Bicep-WVD'
+param wvdvnetID string
 
 resource peer 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-05-01' = {
   name: '${localVnetName2}/peering-to-remote-vnet'
@@ -10,7 +9,7 @@ resource peer 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-05-
     allowGatewayTransit: false
     useRemoteGateways: false
     remoteVirtualNetwork: {
-      id: resourceId(remoteVnetRg2, 'Microsoft.Network/virtualNetworks', remoteVnetName2)
+      id: wvdvnetID
     }
   }
 }

@@ -25,4 +25,4 @@ resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
     ]
   }
 }
-output vnet1id string = vnet.properties.resourceGuid
+output vnet1id string = vnet.id

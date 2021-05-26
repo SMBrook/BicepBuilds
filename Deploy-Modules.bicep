@@ -28,7 +28,6 @@ param DestinationPeeringName string = 'Testpeer43'
 param remoteVnetId string = vNet2Name
 param remoteVnetName string = 'Identity-vnet'
 param remoteVnetRg string = 'AzDemoSB-Identity-rg'
-param identityVnetID string = resourceId(remoteVnetRg, 'Microsoft.Network/virtualNetworks', remoteVnetName)
 
 //Define Azure Files deployment parameters
 param storageaccountlocation string = 'northeurope'
@@ -43,9 +42,15 @@ resource rgwvd 'Microsoft.Resources/resourceGroups@2021-01-01' = {
   location : 'northeurope'
 }
 
-// Identity Existing Sub
+// Get Existing Identity RG
 resource rgwvdIdentity 'Microsoft.Resources/resourceGroups@2021-01-01' existing = {
   name: 'AzDemoSB-Identity-rg'
+}
+
+//Get Existing Identity VNet Details
+resource identityvnet 'Microsoft.Network/virtualNetworks@2020-11-01' existing = {
+  name: remoteVnetName
+  scope: resourceGroup(remoteVnetRg)
 }
 
 //Create WVD backplane objects and configure Log Analytics Diagnostics Settings
@@ -84,16 +89,19 @@ module wvdnetwork './wvd-network-module.bicep' = {
 }
 
 module wvdpeering './wvd-peering-module.bicep' = {
-  name: 'wvdpeering1'
+  name: '${wvdnetwork.name}wvdpeering1'
   scope: resourceGroup(rgwvd.name)
   params:{
-    identityVnetID : identityVnetID
+    identityVnetID : identityvnet.id
   }
 }
 
 module wvdpeeringid './wvd-peering-id-module.bicep' = {
-  name: 'wvdpeeringid'
+  name: '${wvdnetwork.name}wvdpeeringid'
   scope: resourceGroup(rgwvdIdentity.name)
+  params:{
+    wvdvnetID : wvdnetwork.outputs.vnet1id
+  }
 }
 
 //Create WVD Azure File Services and FileShare`
