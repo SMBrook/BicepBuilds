@@ -18,8 +18,10 @@ param logAnalyticsWorkspaceName string = 'AZDemosSBLAWorkspace'
 param vnetName string = 'bicep-vnet'
 param vnetaddressPrefix string ='10.50.0.0/23'
 param subnetPrefix string = '10.50.1.0/24'
+param sasubnetPrefix string = '10.50.0.0/28'
 param vnetLocation string = 'northeurope'
 param subnetName string = 'bicep-subnet'
+param sasubnetName string = 'bicep-sa-subnet'
 param HubvnetName string = 'Identity-vnet'
 param HubvnetRg string = 'AzDemoSB-Identity-rg'
 
@@ -27,8 +29,9 @@ param HubvnetRg string = 'AzDemoSB-Identity-rg'
 param storageaccountlocation string = 'northeurope'
 param storageaccountName string = 'bicepsaazsmblabs'
 param storageaccountkind string = 'FileStorage'
-param storgeaccountglobalRedundancy string = 'Premium_LRS'
+param storageaccountredundancytype string = 'Premium_LRS'
 param fileshareFolderName string = 'profilecontainers'
+param saPEName string = 'wvdsape'
 
 //Define VM Parameters
 param existingVnetName string = vnetName
@@ -98,9 +101,12 @@ module wvdnetwork './wvd-network-module.bicep' = {
     vnetLocation : vnetLocation
     subnetName : subnetName
     dnsservers : dnsservers
+    sasubnetName : sasubnetName
+    sasubnetPrefix : sasubnetPrefix
   }
 }
 
+//Create Peering from WVD vNet to Hub vNet
 module wvdpeering './wvd-peering-module.bicep' = {
   name: '${wvdnetwork.name}wvdpeering1'
   scope: resourceGroup(rgwvd.name)
@@ -110,6 +116,7 @@ module wvdpeering './wvd-peering-module.bicep' = {
   }
 }
 
+//Create Peering from Hub vNet to WVD vNet
 module wvdpeeringid './wvd-peering-id-module.bicep' = {
   name: '${wvdnetwork.name}wvdpeeringid'
   scope: resourceGroup(rgwvdIdentity.name)
@@ -117,6 +124,13 @@ module wvdpeeringid './wvd-peering-id-module.bicep' = {
     peeringnamefromhubvnet : '${identityvnet.name}/${identityvnet.name}-to-${vnetName}'
     wvdvnetID : wvdnetwork.outputs.vnet1id
   }
+}
+
+//Get Existing SaSubnet Details
+resource sasub 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' existing = {
+  name: sasubnetName
+  scope: resourceGroup(rgwvd.name)
+  parent: wvdnetwork
 }
 
 //Create WVD Azure File Services and FileShare`
@@ -127,14 +141,23 @@ module wvdFileServices './wvd-fileservices-module.bicep' = {
     storageaccountlocation : storageaccountlocation
     storageaccountName : storageaccountName
     storageaccountkind : storageaccountkind
-    storgeaccountglobalRedundancy : storgeaccountglobalRedundancy
+    storageaccountredundancytype : storageaccountredundancytype
     fileshareFolderName : fileshareFolderName
   }
 }
 
+//Create Private Endpoint for WVD Storage Account
+module saprivateendpoint './wvd-private-endpoint-module.bicep' = {
+  name: saPEName
+  scope:resourceGroup(rgwvd.name)
+  params: {
+    storagesubnetid: sasub.id
+    storageaccountid: wvdFileServices.outputs.id
+    vnetlinkID: wvdnetwork.outputs.vnet1id
+  }
+}
 
 //Create WVD Session Host
-
 module vmcreation './wvd-vm-module.bicep' = {
   name: 'wvdfirstsessionhost'
   scope: resourceGroup(rgwvd.name)
