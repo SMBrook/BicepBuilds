@@ -148,7 +148,7 @@ module wvdFileServices './wvd-fileservices-module.bicep' = {
 
 //Create Private Endpoint for WVD Storage Account
 module saprivateendpoint './wvd-private-endpoint-module.bicep' = {
-  name: saPEName
+  name: 'wvdpe'
   scope:resourceGroup(rgwvd.name)
   params: {
     storagesubnetid: sasub.id

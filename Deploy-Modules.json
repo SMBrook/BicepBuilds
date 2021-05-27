@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.3.539.46024",
-      "templateHash": "17289010148999227325"
+      "templateHash": "1146442748005809912"
     }
   },
   "parameters": {
@@ -115,7 +115,7 @@
     },
     "saPEName": {
       "type": "string",
-      "defaultValue": "WVDBicep-SA-PE1"
+      "defaultValue": "wvdsape"
     },
     "existingVnetName": {
       "type": "string",
@@ -899,7 +899,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
-      "name": "[parameters('saPEName')]",
+      "name": "wvdpe",
       "resourceGroup": "[parameters('resourceGroupPrefrix')]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -924,7 +924,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "17913943864556536001"
+              "templateHash": "10267653456650121154"
             }
           },
           "parameters": {
@@ -934,11 +934,11 @@
             },
             "privateEndpointName": {
               "type": "string",
-              "defaultValue": "[format('privateEndpoint{0}', uniqueString(resourceGroup().name))]"
+              "defaultValue": "privateEndpointwvd"
             },
             "privateLinkConnectionName": {
               "type": "string",
-              "defaultValue": "[format('privateLink{0}', uniqueString(resourceGroup().name))]"
+              "defaultValue": "privateLinkwvd"
             },
             "privateDNSZoneName": {
               "type": "string",
