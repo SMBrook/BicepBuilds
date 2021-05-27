@@ -5,7 +5,7 @@ resource peerid 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-0
   name: peeringnamefromwvdvnet
   properties: {
     allowVirtualNetworkAccess: true
-    allowForwardedTraffic: false
+    allowForwardedTraffic: true
     allowGatewayTransit: false
     useRemoteGateways: false
     remoteVirtualNetwork: {

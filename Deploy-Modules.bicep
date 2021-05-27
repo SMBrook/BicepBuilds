@@ -35,7 +35,7 @@ param existingVnetName string = vnetName
 param existingSubnetName string = subnetName
 @minLength(1)
 @maxLength(62)
-param dnsLabelPrefix string
+param dnsLabelPrefix string 
 param vmSize string = 'Standard_B2ms'
 param domainToJoin string
 param domainUserName string
@@ -45,8 +45,8 @@ param vmAdminUsername string
 @secure()
 param vmAdminPassword string
 param location string = vnetLocation
-param publicIpName string = 'SHPIP1'
 param dnsservers string = '10.1.0.4'
+param ouPath string = 'OU=WVD,DC=azurelabsmb,DC=local'
 
 //Create Resource Groups
 resource rgwvd 'Microsoft.Resources/resourceGroups@2021-01-01' = {
@@ -148,6 +148,9 @@ module vmcreation './wvd-vm-module.bicep' = {
     domainPassword: domainPassword
     existingSubnetName: existingSubnetName
     existingVnetName: existingVnetName
+    ouPath: ouPath
+    hostpoolName: hostpoolName
+    hostpoolToken: wvdbackplane.outputs.hpregistrationtoken
    }
 
 }

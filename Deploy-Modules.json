@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.3.539.46024",
-      "templateHash": "15183486057806303542"
+      "templateHash": "10417789935692562462"
     }
   },
   "parameters": {
@@ -120,7 +120,7 @@
     },
     "vmSize": {
       "type": "string",
-      "defaultValue": "Standard_A2_v2"
+      "defaultValue": "Standard_B2ms"
     },
     "domainToJoin": {
       "type": "string"
@@ -141,13 +141,13 @@
       "type": "string",
       "defaultValue": "[parameters('vnetLocation')]"
     },
-    "publicIpName": {
-      "type": "string",
-      "defaultValue": "SHPIP1"
-    },
     "dnsservers": {
       "type": "string",
       "defaultValue": "10.1.0.4"
+    },
+    "ouPath": {
+      "type": "string",
+      "defaultValue": "OU=WVD,DC=azurelabsmb,DC=local"
     }
   },
   "functions": [],
@@ -219,7 +219,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "7574395011571163720"
+              "templateHash": "9380703004728056286"
             }
           },
           "parameters": {
@@ -520,7 +520,13 @@
                 "[resourceId('Microsoft.DesktopVirtualization/workspaces', parameters('workspaceName'))]"
               ]
             }
-          ]
+          ],
+          "outputs": {
+            "hpregistrationtoken": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DesktopVirtualization/hostPools', parameters('hostpoolName'))).registrationInfo.token]"
+            }
+          }
         }
       },
       "dependsOn": [
@@ -653,7 +659,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "15685200968820027882"
+              "templateHash": "14495814806325370611"
             }
           },
           "parameters": {
@@ -672,7 +678,7 @@
               "name": "[parameters('peeringnamefromwvdvnet')]",
               "properties": {
                 "allowVirtualNetworkAccess": true,
-                "allowForwardedTraffic": false,
+                "allowForwardedTraffic": true,
                 "allowGatewayTransit": false,
                 "useRemoteGateways": false,
                 "remoteVirtualNetwork": {
@@ -871,6 +877,15 @@
           },
           "existingVnetName": {
             "value": "[parameters('existingVnetName')]"
+          },
+          "ouPath": {
+            "value": "[parameters('ouPath')]"
+          },
+          "hostpoolName": {
+            "value": "[parameters('hostpoolName')]"
+          },
+          "hostpoolToken": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupPrefrix')), 'Microsoft.Resources/deployments', 'wvdbackplane'), '2019-10-01').outputs.hpregistrationtoken.value]"
           }
         },
         "template": {
@@ -880,7 +895,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "4471061841128359667"
+              "templateHash": "1332118971848828488"
             }
           },
           "parameters": {
@@ -896,8 +911,7 @@
               "minLength": 1
             },
             "vmSize": {
-              "type": "string",
-              "defaultValue": "Standard_A2_v2"
+              "type": "string"
             },
             "domainToJoin": {
               "type": "string"
@@ -907,6 +921,9 @@
             },
             "domainPassword": {
               "type": "secureString"
+            },
+            "ouPath": {
+              "type": "string"
             },
             "domainJoinOptions": {
               "type": "int",
@@ -921,6 +938,19 @@
             "vmAdminPassword": {
               "type": "secureString"
             },
+            "artifactsLocation": {
+              "type": "string",
+              "defaultValue": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip",
+              "metadata": {
+                "description": "The base URI where artifacts required by this template are located."
+              }
+            },
+            "hostpoolName": {
+              "type": "string"
+            },
+            "hostpoolToken": {
+              "type": "string"
+            },
             "location": {
               "type": "string",
               "defaultValue": "[resourceGroup().location]"
@@ -933,22 +963,9 @@
             "imageOffer": "office-365",
             "windowsOSVersion": "20h2-evd-o365pp-g2",
             "nicName": "[format('{0}-nic', parameters('dnsLabelPrefix'))]",
-            "publicIpName": "[format('{0}-pip', parameters('dnsLabelPrefix'))]",
             "subnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('existingVnetName'), parameters('existingSubnetName'))]"
           },
           "resources": [
-            {
-              "type": "Microsoft.Network/publicIPAddresses",
-              "apiVersion": "2020-06-01",
-              "name": "[variables('publicIpName')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "publicIPAllocationMethod": "Dynamic",
-                "dnsSettings": {
-                  "domainNameLabel": "[parameters('dnsLabelPrefix')]"
-                }
-              }
-            },
             {
               "type": "Microsoft.Storage/storageAccounts",
               "apiVersion": "2020-08-01-preview",
@@ -971,19 +988,13 @@
                     "name": "ipconfig1",
                     "properties": {
                       "privateIPAllocationMethod": "Dynamic",
-                      "publicIPAddress": {
-                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
-                      },
                       "subnet": {
                         "id": "[variables('subnetId')]"
                       }
                     }
                   }
                 ]
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName'))]"
-              ]
+              }
             },
             {
               "type": "Microsoft.Compute/virtualMachines",
@@ -1052,6 +1063,7 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                   "name": "[parameters('domainToJoin')]",
+                  "ouPath": "[parameters('ouPath')]",
                   "user": "[format('{0}\\{1}', parameters('domainToJoin'), parameters('domainUserName'))]",
                   "restart": true,
                   "options": "[parameters('domainJoinOptions')]"
@@ -1063,12 +1075,37 @@
               "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('dnsLabelPrefix'))]"
               ]
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines/extensions",
+              "apiVersion": "2018-10-01",
+              "name": "[format('{0}/Microsoft.PowerShell.DSC', parameters('dnsLabelPrefix'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.73",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                  "modulesUrl": "[parameters('artifactsLocation')]",
+                  "configurationFunction": "Configuration.ps1\\AddSessionHost",
+                  "properties": {
+                    "hostPoolName": "[parameters('hostpoolName')]",
+                    "registrationInfoToken": "[parameters('hostpoolToken')]"
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines/extensions', split(format('{0}/joindomain', parameters('dnsLabelPrefix')), '/')[0], split(format('{0}/joindomain', parameters('dnsLabelPrefix')), '/')[1])]",
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('dnsLabelPrefix'))]"
+              ]
             }
           ]
         }
       },
       "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupPrefrix'))]"
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupPrefrix'))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupPrefrix')), 'Microsoft.Resources/deployments', 'wvdbackplane')]"
       ]
     }
   ]

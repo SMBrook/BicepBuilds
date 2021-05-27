@@ -15,7 +15,9 @@ param logAnalyticslocation string = 'northeurope'
 param logAnalyticsWorkspaceSku string = 'pergb2018'
 param logAnalyticsResourceGroup string
 param wvdBackplaneResourceGroup string
-
+param baseTime string = utcNow('u')
+var add4Hours = dateTimeAdd(baseTime, 'PT4H')
+output add4HourOutput string = add4Hours
 
 //Create WVD Hostpool
 resource hp 'Microsoft.DesktopVirtualization/hostPools@2021-02-01-preview' = {
@@ -26,7 +28,11 @@ resource hp 'Microsoft.DesktopVirtualization/hostPools@2021-02-01-preview' = {
     hostPoolType : hostPoolType
     loadBalancerType : loadBalancerType
     preferredAppGroupType: preferredAppGroupType
-    
+    registrationInfo: {
+      expirationTime: add4Hours
+      token: 'token'
+      registrationTokenOperation: 'Update'
+    }
   }
 }
 
@@ -68,4 +74,5 @@ module wvdmonitor './wvd-LogAnalytics.bicep' = {
   }
 }
 
-  
+
+output hpregistrationtoken string = hp.properties.registrationInfo.token
