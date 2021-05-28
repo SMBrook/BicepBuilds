@@ -28,15 +28,18 @@ resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
         name: subnetName
         properties: {
           addressPrefix: subnetPrefix
+          privateEndpointNetworkPolicies: 'Disabled'
         }
       }
       {
         name: sasubnetName
         properties: {
           addressPrefix: sasubnetPrefix
+          privateEndpointNetworkPolicies: 'Disabled'
         }
       }
     ]
    }
 }
 output vnet1id string = vnet.id
+output subnetId string = vnet.properties.subnets[1].id

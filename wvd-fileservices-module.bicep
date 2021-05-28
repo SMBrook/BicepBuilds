@@ -29,7 +29,7 @@ resource fs 'Microsoft.Storage/storageAccounts/fileServices/shares@2021-02-01' =
   name: filesharelocation
 }
 
-output id string = sa.id
+output storageAccountId string = sa.id
 
 /*Enable SMB Multichannel
 resource fsconfig 'Microsoft.Storage/storageAccounts/fileServices@2021-02-01' = {

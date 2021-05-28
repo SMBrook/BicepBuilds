@@ -146,14 +146,16 @@ module wvdFileServices './wvd-fileservices-module.bicep' = {
   }
 }
 
-//Create Private Endpoint for WVD Storage Account
-module saprivateendpoint './wvd-private-endpoint-module.bicep' = {
-  name: 'wvdpe'
-  scope:resourceGroup(rgwvd.name)
+//Create Private Endpoint for file storage
+module pep './wvd-fileservices-privateendpoint-module.bicep' = {
+  name: 'privateEndpoint'
+  scope: rgwvd
   params: {
-    storagesubnetid: sasub.id
-    storageaccountid: wvdFileServices.outputs.id
-    vnetlinkID: wvdnetwork.outputs.vnet1id
+    location: vnetLocation
+    privateEndpointName: 'pep-sto'
+    storageAccountId: wvdFileServices.outputs.storageAccountId
+    vnetId: wvdnetwork.outputs.vnet1id
+    subnetId: wvdnetwork.outputs.subnetId
   }
 }
 
