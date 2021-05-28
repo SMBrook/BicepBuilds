@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.3.539.46024",
-      "templateHash": "1146442748005809912"
+      "templateHash": "12103701356086556614"
     }
   },
   "parameters": {
@@ -924,7 +924,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.3.539.46024",
-              "templateHash": "10267653456650121154"
+              "templateHash": "2175900674203620354"
             }
           },
           "parameters": {
@@ -934,11 +934,11 @@
             },
             "privateEndpointName": {
               "type": "string",
-              "defaultValue": "privateEndpointwvd"
+              "defaultValue": "[format('privateEndpoint{0}', uniqueString(resourceGroup().name))]"
             },
             "privateLinkConnectionName": {
               "type": "string",
-              "defaultValue": "privateLinkwvd"
+              "defaultValue": "[format('privateLink{0}', uniqueString(resourceGroup().name))]"
             },
             "privateDNSZoneName": {
               "type": "string",
@@ -975,7 +975,7 @@
                     "properties": {
                       "privateLinkServiceId": "[parameters('storageaccountid')]",
                       "groupIds": [
-                        "storageaccounts"
+                        "[parameters('storageaccountid')]"
                       ]
                     }
                   }
