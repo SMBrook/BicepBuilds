@@ -1,26 +1,18 @@
-// Define Networking parameters
+// Define Networkin parameters
 param vnetName string
 param vnetaddressPrefix string
 param subnetPrefix string
-param vnetLocation string
-param subnetName string
-param dnsservers string
-param sasubnetName string
-param sasubnetPrefix string
+param vnetLocation string = 'westeurope'
+param subnetName string = 'WVD'
 
 //Create Vnet and Subnet
-resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
+resource vnet 'Microsoft.Network/virtualNetworks@2019-12-01' = {
   name: vnetName
   location: vnetLocation
-   properties: {
+  properties: {
     addressSpace: {
       addressPrefixes: [
         vnetaddressPrefix
-      ]
-    }
-    dhcpOptions: {
-      dnsServers: [
-        dnsservers
       ]
     }
     subnets: [
@@ -31,15 +23,9 @@ resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
           privateEndpointNetworkPolicies: 'Disabled'
         }
       }
-      {
-        name: sasubnetName
-        properties: {
-          addressPrefix: sasubnetPrefix
-          privateEndpointNetworkPolicies: 'Disabled'
-        }
-      }
     ]
-   }
+  }
 }
-output vnet1id string = vnet.id
-output subnetId string = vnet.properties.subnets[1].id
+
+output subnetId string = vnet.properties.subnets[0].id
+output vnetId string = vnet.id
