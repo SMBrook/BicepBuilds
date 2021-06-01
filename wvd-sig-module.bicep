@@ -10,12 +10,13 @@ param imageLocation string = 'northeurope'
 param roleNameGalleryImage string = '${'BicepAIB'}${utcNow()}'
 param imageTemplateName string = 'WVDMain'
 param svclocation string = 'northeurope'
-param uamiName string
+param uamiName string = '${'AIBUser'}${utcNow()}'
 param uamiId string = resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', uamiName)
 param outputname string = uniqueString(resourceGroup().name)
 param roleName string = '${'AIBRoleForSIG'}${utcNow()}'
 param sigName string = 'wvdbicepsig'
 param sigLocation string = 'northeurope'
+
 
 // Create User-Assigned Managed Identity
 
@@ -34,7 +35,7 @@ resource wvdsig 'Microsoft.Compute/galleries@2020-09-30' = {
 resource gallerydef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' = {
   name: guid(roleNameGalleryImage)
   properties: {
-    roleName: roleName
+    roleName: '${roleName}${sigName}'
     description: 'Custom role for network read'
     permissions: [
       {
@@ -61,6 +62,7 @@ resource galleryassignment 'Microsoft.Authorization/roleAssignments@2020-04-01-p
   properties: {
    roleDefinitionId: gallerydef.id
     principalId: managedidentity.properties.principalId
+    principalType: 'ServicePrincipal'
   }
 }
 
@@ -93,7 +95,7 @@ resource wvdid 'Microsoft.Compute/galleries/images@2019-07-01' = {
 
 resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplates@2020-02-14' = {
   name: imageTemplateName
-  location: svclocation
+  location: sigLocation
   tags: {
     imagebuilderTemplate: 'AzureImageBuilderSIG'
     userIdentity: 'enabled'
