@@ -2,20 +2,20 @@ targetScope = 'resourceGroup'
 
 param subid string = subscription().id
 param rgid string = resourceGroup().id
-param sigName string
-param sigLocation string
 param imagePublisher string = 'MicrosoftWindowsDesktop'
 param imageDefinitionName string = 'BicepAIBWVDImage'
 param imageOffer string = 'windows-10'
 param imageSKU string = '20h2-ent'
 param imageLocation string = 'northeurope'
-param roleNameGalleryImage string = 'galleryrolename'
+param roleNameGalleryImage string = '${'BicepAIB'}${utcNow()}'
 param imageTemplateName string = 'WVDMain'
 param svclocation string = 'northeurope'
 param uamiName string
 param uamiId string = resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', uamiName)
 param outputname string = uniqueString(resourceGroup().name)
-
+param roleName string = '${'AIBRoleForSIG'}${utcNow()}'
+param sigName string = 'wvdbicepsig'
+param sigLocation string = 'northeurope'
 
 // Create User-Assigned Managed Identity
 
@@ -34,7 +34,7 @@ resource wvdsig 'Microsoft.Compute/galleries@2020-09-30' = {
 resource gallerydef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' = {
   name: guid(roleNameGalleryImage)
   properties: {
-    roleName: 'AIBRoleForSIG'
+    roleName: roleName
     description: 'Custom role for network read'
     permissions: [
       {
@@ -77,11 +77,11 @@ resource wvdid 'Microsoft.Compute/galleries/images@2019-07-01' = {
     }
     recommended: {
       vCPUs: {
-        min: 0
+        min: 2
         max: 32
       }
       memory: {
-        min: 0
+        min: 4
         max: 64
       }
     }

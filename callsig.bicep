@@ -3,7 +3,7 @@ targetScope = 'subscription'
 param sigName string = 'wvdbicepsig'
 param sigLocation string = 'northeurope'
 param sigrg string = 'Bicep-SIG-Collaboration'
-param uamiName string = 'aibuser3'
+param uamiName string = '${'AIBUser'}${utcNow()}'
 
 //Get SIG Resource Group Details
 resource sigresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01' existing = {
