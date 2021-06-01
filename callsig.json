@@ -1,0 +1,305 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.3.539.46024",
+      "templateHash": "17673829484863200894"
+    }
+  },
+  "parameters": {
+    "sigName": {
+      "type": "string",
+      "defaultValue": "wvdbicepsig"
+    },
+    "sigLocation": {
+      "type": "string",
+      "defaultValue": "northeurope"
+    },
+    "imagePublisher": {
+      "type": "string",
+      "defaultValue": "MicrosoftWindowsDesktop"
+    },
+    "imageDefinitionName": {
+      "type": "string",
+      "defaultValue": "PlatformImage"
+    },
+    "imageOffer": {
+      "type": "string",
+      "defaultValue": "windows-10"
+    },
+    "imageSKU": {
+      "type": "string",
+      "defaultValue": "20h2-ent"
+    },
+    "imageLocation": {
+      "type": "string",
+      "defaultValue": "northeurope"
+    },
+    "roleNameGalleryImage": {
+      "type": "string",
+      "defaultValue": "galleryrolename"
+    },
+    "principalId": {
+      "type": "string",
+      "defaultValue": "imagebuilderpid"
+    },
+    "sigrg": {
+      "type": "string",
+      "defaultValue": "AZDemoSB-SIG-Collaboration"
+    },
+    "imageTemplateName": {
+      "type": "string",
+      "defaultValue": "WVDMain"
+    },
+    "svclocation": {
+      "type": "string",
+      "defaultValue": "northeurope"
+    }
+  },
+  "functions": [],
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "wvdsig",
+      "resourceGroup": "[parameters('sigrg')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "sigName": {
+            "value": "[parameters('sigName')]"
+          },
+          "sigLocation": {
+            "value": "[parameters('sigLocation')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.3.539.46024",
+              "templateHash": "4771339943334809815"
+            }
+          },
+          "parameters": {
+            "sigName": {
+              "type": "string"
+            },
+            "sigLocation": {
+              "type": "string"
+            },
+            "imagePublisher": {
+              "type": "string",
+              "defaultValue": "MicrosoftWindowsDesktop"
+            },
+            "imageDefinitionName": {
+              "type": "string",
+              "defaultValue": "PlatformImage"
+            },
+            "imageOffer": {
+              "type": "string",
+              "defaultValue": "windows-10"
+            },
+            "imageSKU": {
+              "type": "string",
+              "defaultValue": "20h2-ent"
+            },
+            "imageLocation": {
+              "type": "string",
+              "defaultValue": "northeurope"
+            },
+            "roleNameGalleryImage": {
+              "type": "string",
+              "defaultValue": "galleryrolename"
+            },
+            "principalId": {
+              "type": "string",
+              "defaultValue": "imagebuilderpid"
+            },
+            "imageTemplateName": {
+              "type": "string",
+              "defaultValue": "WVDMain"
+            },
+            "svclocation": {
+              "type": "string",
+              "defaultValue": "northeurope"
+            },
+            "uamiName": {
+              "type": "string",
+              "defaultValue": "aibuser"
+            }
+          },
+          "functions": [],
+          "resources": [
+            {
+              "type": "Microsoft.Compute/galleries",
+              "apiVersion": "2020-09-30",
+              "name": "[parameters('sigName')]",
+              "location": "[parameters('sigLocation')]"
+            },
+            {
+              "type": "Microsoft.Compute/galleries/images",
+              "apiVersion": "2019-07-01",
+              "name": "[format('{0}/{1}', parameters('sigName'), parameters('imageDefinitionName'))]",
+              "location": "[parameters('sigLocation')]",
+              "properties": {
+                "osType": "Windows",
+                "osState": "Generalized",
+                "identifier": {
+                  "publisher": "[parameters('imagePublisher')]",
+                  "offer": "[parameters('imageOffer')]",
+                  "sku": "[parameters('imageSKU')]"
+                },
+                "recommended": {
+                  "vCPUs": {
+                    "min": 0,
+                    "max": 32
+                  },
+                  "memory": {
+                    "min": 0,
+                    "max": 64
+                  }
+                },
+                "hyperVGeneration": "V2"
+              },
+              "tags": {}
+            },
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2018-11-30",
+              "name": "[parameters('uamiName')]",
+              "location": "[resourceGroup().location]"
+            },
+            {
+              "type": "Microsoft.Authorization/roleDefinitions",
+              "apiVersion": "2018-01-01-preview",
+              "name": "[guid(parameters('roleNameGalleryImage'))]",
+              "properties": {
+                "roleName": "[parameters('roleNameGalleryImage')]",
+                "description": "Custom role for network read",
+                "permissions": [
+                  {
+                    "actions": [
+                      "Microsoft.Compute/galleries/read",
+                      "Microsoft.Compute/galleries/images/read",
+                      "Microsoft.Compute/galleries/images/versions/read",
+                      "Microsoft.Compute/galleries/images/versions/write",
+                      "Microsoft.Compute/images/write",
+                      "Microsoft.Compute/images/read",
+                      "Microsoft.Compute/images/delete"
+                    ]
+                  }
+                ],
+                "assignableScopes": [
+                  "[resourceId('Microsoft.Compute/galleries', parameters('sigName'))]"
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/galleries', parameters('sigName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[guid(resourceGroup().id, resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')))]",
+              "properties": {
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]",
+                "principalId": "[parameters('principalId')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.VirtualMachineImages/imageTemplates",
+              "apiVersion": "2020-02-14",
+              "name": "[parameters('imageTemplateName')]",
+              "location": "[parameters('svclocation')]",
+              "tags": {
+                "imagebuilderTemplate": "AzureImageBuilderSIG",
+                "userIdentity": "enabled"
+              },
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "<imgBuilderId>": {}
+                }
+              },
+              "properties": {
+                "buildTimeoutInMinutes": 120,
+                "vmProfile": {
+                  "vmSize": "Standard_D2_v2",
+                  "osDiskSizeGB": 127
+                },
+                "source": {
+                  "type": "PlatformImage",
+                  "publisher": "MicrosoftWindowsDesktop",
+                  "offer": "windows-10",
+                  "sku": "20h2-ent",
+                  "version": "latest"
+                },
+                "customize": [
+                  {
+                    "type": "PowerShell",
+                    "name": "OptimizeOS",
+                    "runElevated": true,
+                    "runAsSystem": true,
+                    "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/1_Optimize_OS_for_WVD.ps1"
+                  },
+                  {
+                    "type": "WindowsRestart",
+                    "restartCheckCommand": "write-host 'restarting post Optimizations'",
+                    "restartTimeout": "5m"
+                  },
+                  {
+                    "type": "PowerShell",
+                    "name": "Install Teams",
+                    "runElevated": true,
+                    "runAsSystem": true,
+                    "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/2_installTeams.ps1"
+                  },
+                  {
+                    "type": "WindowsRestart",
+                    "restartCheckCommand": "write-host 'restarting post Teams Install'",
+                    "restartTimeout": "5m"
+                  },
+                  {
+                    "type": "WindowsUpdate",
+                    "searchCriteria": "IsInstalled=0",
+                    "filters": [
+                      "exclude:$_.Title -like '*Preview*'",
+                      "include:$true"
+                    ],
+                    "updateLimit": 40
+                  }
+                ],
+                "distribute": [
+                  {
+                    "type": "SharedImage",
+                    "galleryImageId": "/subscriptions/<subscriptionID>/resourceGroups/<rgName>/providers/Microsoft.Compute/galleries/<sharedImageGalName>/images/<imageDefName>",
+                    "runOutputName": "<runOutputName>",
+                    "artifactTags": {
+                      "source": "wvd10",
+                      "baseosimg": "windows10"
+                    },
+                    "replicationRegions": [
+                      "<region1>"
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
