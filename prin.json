@@ -1,35 +1,92 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "baseName": {
-            "type": "string",
-            "defaultValue": "msi-test"
+      "imageTemplateName": {
+        "type": "string"
+        },
+        "api-version": {
+          "type": "string"
+        },
+        "svclocation": {
+            "type": "string"
         }
     },
+    
     "variables": {
-        "identityName": "[concat(parameters('baseName'), '-bootstrap')]",
-        "bootstrapRoleAssignmentId": "[guid(concat(resourceGroup().id, 'contributor'))]",
-        "contributorRoleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
     },
+
+
     "resources": [
-        {
-            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-            "name": "[variables('identityName')]",
-            "apiVersion": "2018-11-30",
-            "location": "[resourceGroup().location]"
+    {
+    "name": "[parameters('imageTemplateName')]",
+    "type": "Microsoft.VirtualMachineImages/imageTemplates",
+    "apiVersion": "[parameters('api-version')]",
+    "location": "[parameters('svclocation')]",
+    "dependsOn": [],
+    
+    "tags": {
+        "imagebuilderTemplate": "AzureVMImageBuilderSIGonSIG",
+        "userIdentity": "enabled"
+            },
+        "identity": {
+            "type": "UserAssigned",
+                    "userAssignedIdentities": {
+                    "<imgBuilderId>": {}
+                        
+                }
+                        },
+        "properties": {
+    
+            "buildTimeoutInMinutes" : 100,
+            
+            "vmProfile": 
+                {
+                "vmSize": "Standard_D2_v2",
+                "osDiskSizeGB": 127
+                },
+
+            "source": {
+                "type": "SharedImageVersion",
+                    "imageVersionId": "<sigDefImgVersionId>"
+                
         },
-        {
-            "type": "Microsoft.Authorization/roleAssignments",
-            "apiVersion": "2018-09-01-preview",
-            "name": "[variables('bootstrapRoleAssignmentId')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+
+            "customize": [
+                {
+                    "type": "PowerShell",
+                    "name": "settingUpMgmtAgtPath",
+                    "inline": [
+                        "mkdir c:\\buildActions2",
+                        "echo Azure-Image-Builder-Was-Here  > c:\\buildActions2\\buildActionsOutput.txt" 
+                            ]
+                },
+                {
+                    "type": "WindowsUpdate",
+                    "searchCriteria": "IsInstalled=0",
+                    "filters": [
+                        "exclude:$_.Title -like '*Preview*'",
+                        "include:$true"
+                                ],
+                    "updateLimit": 20
+                }
             ],
-            "properties": {
-                "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
-                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2018-11-30').principalId]",
-                "principalType": "ServicePrincipal"
+            "distribute": 
+            [
+                {   
+                    "type": "SharedImage",
+                    "galleryImageId": "/subscriptions/<subscriptionID>/resourceGroups/<rgName>/providers/Microsoft.Compute/galleries/<sharedImageGalName>/images/<imageDefName>",
+                    "runOutputName": "<runOutputName>",
+                    "artifactTags": {
+                        "source": "azureVmImageBuilder",
+                        "baseosimg": "windows2019"
+                    },
+                    "replicationRegions": [
+                    "<region1>",
+                    "<region2>"
+                    ]
+                }
+            ]
             }
         }
     ]

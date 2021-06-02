@@ -136,7 +136,7 @@ var vmAvailabilitySetResourceId = {
   id: resourceId('Microsoft.Compute/availabilitySets/', availabilitySetName)
 }
 
-module NSG './NSG.bicep' = {
+module NSG 'wvd-nsg-module.bicep' = {
   name: 'NSG-linkedTemplate'
   params: {
     createNetworkSecurityGroup: createNetworkSecurityGroup

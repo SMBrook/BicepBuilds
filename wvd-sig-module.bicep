@@ -23,7 +23,7 @@ resource gallerydef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview'
   name: guid(roleNameGalleryImage)
   properties: {
     roleName: '${roleName}${sigName}'
-    description: 'Custom role for network read'
+    description: 'Custom role for SIG and AIB'
     permissions: [
       {
         actions: [
@@ -34,6 +34,7 @@ resource gallerydef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview'
           'Microsoft.Compute/images/write'
           'Microsoft.Compute/images/read'
           'Microsoft.Compute/images/delete'
+          'Microsoft.VirtualMachineImages/imageTemplates/Run/action'
         ]
       }
     ]

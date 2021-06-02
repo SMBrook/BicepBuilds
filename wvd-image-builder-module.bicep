@@ -2,6 +2,7 @@ param sigName string
 param siglocation string
 param imageTemplateName string = '${'WVDBicep'}${utcNow()}'
 param outputname string = uniqueString(resourceGroup().name)
+param rgname string = resourceGroup().name
 param userAssignedIdentities string
 param imagePublisher string
 param imageDefinitionName string
@@ -105,10 +106,34 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
           baseosimg: 'windows10'
         }
         replicationRegions: [
-          'northeurope'
+          'westeurope'
         ]
       }
     ]
   }
+}
+
+resource scriptName_BuildVMImage 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
+  name: 'BuildVMImage'
+  location: resourceGroup().location
+  kind: 'AzurePowerShell'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${userAssignedIdentities}': {}
+    }
+  }
+  properties: {
+    forceUpdateTag: '1'
+    azPowerShellVersion: '3.0'
+    arguments: ''
+    scriptContent: 'Invoke-AzResourceAction -ResourceName ${imageTemplateName} -ResourceGroupName ${rgname} -ResourceType Microsoft.VirtualMachineImages/imageTemplates -ApiVersion "2020-02-14" -Action Run -Force'
+    timeout: 'PT5M'
+    cleanupPreference: 'Always'
+    retentionInterval: 'P1D'
+  }
+  dependsOn: [
+    imageTemplateName_resource
+  ]
 }
 

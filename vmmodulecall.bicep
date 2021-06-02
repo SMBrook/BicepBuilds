@@ -2,18 +2,18 @@
 param artifactsLocation string = 'https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip'
 
 @description('A username in the domain that has privileges to join the session hosts to the domain. For example, \'vmjoiner@contoso.com\'.')
-param administratorAccountUsername string = ''
+param administratorAccountUsername string = 'sbadmin'
 
 @description('The password that corresponds to the existing domain username.')
 @secure()
-param administratorAccountPassword string = ''
+param administratorAccountPassword string
 
 @description('A username to be used as the virtual machine administrator account. The vmAdministratorAccountUsername and  vmAdministratorAccountPassword parameters must both be provided. Otherwise, domain administrator credentials provided by administratorAccountUsername and administratorAccountPassword will be used.')
-param vmAdministratorAccountUsername string = ''
+param vmAdministratorAccountUsername string = 'sbtest'
 
 @description('The password associated with the virtual machine administrator account. The vmAdministratorAccountUsername and  vmAdministratorAccountPassword parameters must both be provided. Otherwise, domain administrator credentials provided by administratorAccountUsername and administratorAccountPassword will be used.')
 @secure()
-param vmAdministratorAccountPassword string = ''
+param vmAdministratorAccountPassword string 
 
 @allowed([
   'None'
@@ -21,13 +21,13 @@ param vmAdministratorAccountPassword string = ''
   'AvailabilityZone'
 ])
 @description('Select the availability options for the VMs.')
-param availabilityOption string = 'None'
+param availabilityOption string = 'AvailabilitySet'
 
 @description('The name of avaiability set to be used when create the VMs.')
-param availabilitySetName string = ''
+param availabilitySetName string = 'WVDAVSet'
 
 @description('Whether to create a new availability set for the VMs.')
-param createAvailabilitySet bool = false
+param createAvailabilitySet bool = true
 
 @allowed([
   1
@@ -71,7 +71,7 @@ param availabilitySetFaultDomainCount int = 2
 param availabilityZone int = 1
 
 @description('The resource group of the session host VMs.')
-param vmResourceGroup string = ''
+param vmResourceGroup string = 'BICEP-WVD-BACKPLANE'
 
 @description('The location of the session host VMs.')
 param vmLocation string = ''
@@ -170,6 +170,8 @@ param aadJoin bool = false
 @description('IMPORTANT: Please don\'t use this parameter as intune enrollment is not supported yet. True if intune enrollment is selected.  False otherwise')
 param intune bool = false
 
+param hostpoolName string = 'myBicepHostpool'
+
 var createVMs = (vmNumberOfInstances > 0)
 var rdshPrefix = '${vmNamePrefix}-'
 var avSetSKU = 'Aligned'
@@ -179,7 +181,11 @@ var rdshVmNamesOutput = [for j in range(0, (createVMs ? vmNumberOfInstances : 1)
   name: '${rdshPrefix}${j}'
 }]
 
-module AVSet './modules/AVSet.bicep' = if (createVMs && (availabilityOption == 'AvailabilitySet') && createAvailabilitySet) {
+//Get WVD Hostpool
+resource hp 'Microsoft.DesktopVirtualization/hostpools@2019-12-10-preview' existing = {
+  name: hostpoolName
+}
+module AVSet 'wvd-avset-module.bicep' = if (createVMs && (availabilityOption == 'AvailabilitySet') && createAvailabilitySet) {
   name: 'AVSet-deployment' //'AVSet-linkedTemplate-${deploymentId}'
   scope: resourceGroup(vmResourceGroup)
   params: {
