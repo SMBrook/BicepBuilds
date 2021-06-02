@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
 //Define WVD deployment parameters
-param resourceGroupPrefrix string = 'NINJA-WE-P-RG-WVD-BICEP-WVD-'
+param resourceGroupPrefrix string = 'BICEP-WVD-'
 param hostpoolName string = 'myBicepHostpool'
 param hostpoolFriendlyName string = 'My Bicep deployed Hostpool'
 param appgroupName string = 'myBicepAppGroup'
@@ -12,25 +12,33 @@ param preferredAppGroupType string = 'Desktop'
 param wvdbackplanelocation string = 'eastus'
 param hostPoolType string = 'pooled'
 param loadBalancerType string = 'BreadthFirst'
-param logAnalyticsWorkspaceName string = 'myNinjaBicepLAWorkspace'
+param logAnalyticsWorkspaceName string = 'WVDBicepLAWorkspace'
 
 //Define Networking deployment parameters
 param vnetName string = 'bicep-vnet'
-param vnetaddressPrefix string = '10.0.0.0/15'
-param subnetPrefix string = '10.0.1.0/24'
+param vnetaddressPrefix string = '10.60.0.0/15'
+param subnetPrefix string = '10.60.1.0/24'
 param vnetLocation string = 'westeurope'
 param subnetName string = 'bicep-subnet'
 
 //Define Azure Files deployment parameters
 param storageaccountlocation string = 'westeurope'
-param storageaccountName string = 'bicepsa'
+param storageaccountName string = 'bicepsa${string(4)}'
 param storageaccountkind string = 'FileStorage'
 param storgeaccountglobalRedundancy string = 'Premium_LRS'
 param fileshareFolderName string = 'profilecontainers'
 
 //Set Peering Hub RG and VNet target parameters
-param hubrg string = 'ExistingHubName' //Enter the name of the existing Hub/Identity vNet Resource Group 
-param hubvnet string = 'ExistingHubvNetName' //Enter the name of the existing Hub vNet name
+param hubrg string = 'AzDemoSB-Identity-rg' //Enter the name of the existing Hub/Identity vNet Resource Group 
+param hubvnet string = 'Identity-vnet' //Enter the name of the existing Hub vNet name
+
+//Define Shared Image Gallery Parameters
+param uamiName string  = '${'AIBUser'}${utcNow()}'
+param imageDefinitionName string = 'BicepAIBWVDImage'
+param imagePublisher string = 'MicrosoftWindowsDesktop'
+param imageOffer string = 'windows-10'
+param imageSKU string = '20h2-ent'
+param sigName string = 'wvdbicepsig'
 
 //Get Existing Hub Resource Group Details
 resource hubresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01' existing = {
@@ -59,6 +67,10 @@ resource rgfs 'Microsoft.Resources/resourceGroups@2020-06-01' = {
 }
 resource rdmon 'Microsoft.Resources/resourceGroups@2020-06-01' = {
   name: '${resourceGroupPrefrix}MONITOR'
+  location: 'westeurope'
+}
+resource sigresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01'  = {
+  name: '${resourceGroupPrefrix}SIG'
   location: 'westeurope'
 }
 
@@ -142,3 +154,32 @@ module hubpeering './wvd-peering-from-hub-to-vnet-module.bicep' = {
     wvdvnetid : wvdnetwork.outputs.vnetId
   }
 }
+
+
+//Create WVD Shared Image Gallery
+module wvdsig 'wvd-sig-module.bicep' = {
+  name: 'wvdsig'
+  scope: sigresourcegroup
+  params: {
+    uamiName: uamiName
+    sigName: sigName
+    sigLocation: sigresourcegroup.location
+       }
+}
+
+//Create SIG Image, AIB Image and version
+module wvd 'wvd-image-builder-module.bicep' = {
+  name: 'wvdimagebuilder${wvdsig.name}'
+  scope: resourceGroup('${resourceGroupPrefrix}SIG')
+  params: {
+    siglocation: sigresourcegroup.location
+    sigName: sigName
+    userAssignedIdentities: '${wvdsig.outputs.uamioutput}'
+    imagePublisher: imagePublisher
+    imageDefinitionName: imageDefinitionName
+    imageOffer: imageOffer
+    imageSKU: imageSKU
+
+      }
+    
+    }
