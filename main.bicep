@@ -23,7 +23,7 @@ param subnetName string = 'bicep-subnet'
 
 //Define Azure Files deployment parameters
 param storageaccountlocation string = 'westeurope'
-param storageaccountName string = 'bicepsa${string(4)}'
+param storageaccountName string = 'bicepsa${uniqueString('wvdstorage')}'
 param storageaccountkind string = 'FileStorage'
 param storgeaccountglobalRedundancy string = 'Premium_LRS'
 param fileshareFolderName string = 'profilecontainers'
@@ -38,7 +38,7 @@ param imageDefinitionName string = 'BicepAIBWVDImage'
 param imagePublisher string = 'MicrosoftWindowsDesktop'
 param imageOffer string = 'windows-10'
 param imageSKU string = '20h2-ent'
-param sigName string = 'wvdbicepsig'
+param sigName string = '${resourceGroupPrefrix}-SIG'
 
 //Get Existing Hub Resource Group Details
 resource hubresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01' existing = {
@@ -65,11 +65,11 @@ resource rgfs 'Microsoft.Resources/resourceGroups@2020-06-01' = {
   name: '${resourceGroupPrefrix}FILESERVICES'
   location: 'westeurope'
 }
-resource rdmon 'Microsoft.Resources/resourceGroups@2020-06-01' = {
+resource rgmon 'Microsoft.Resources/resourceGroups@2020-06-01' = {
   name: '${resourceGroupPrefrix}MONITOR'
   location: 'westeurope'
 }
-resource sigresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01'  = {
+resource rgsig 'Microsoft.Resources/resourceGroups@2020-06-01'  = {
   name: '${resourceGroupPrefrix}SIG'
   location: 'westeurope'
 }
@@ -91,7 +91,7 @@ module wvdbackplane './wvd-backplane-module.bicep' = {
     hostPoolType: hostPoolType
     loadBalancerType: loadBalancerType
     logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
-    logAnalyticsResourceGroup: rdmon.name
+    logAnalyticsResourceGroup: rgmon.name
     wvdBackplaneResourceGroup: rgwvd.name
   }
 }
@@ -156,29 +156,30 @@ module hubpeering './wvd-peering-from-hub-to-vnet-module.bicep' = {
 }
 
 
-//Create WVD Shared Image Gallery
+//Create WVD Shared Image Gallery and Image Definition
 module wvdsig 'wvd-sig-module.bicep' = {
   name: 'wvdsig'
-  scope: sigresourcegroup
+  scope: rgsig
   params: {
     uamiName: uamiName
     sigName: sigName
-    sigLocation: sigresourcegroup.location
+    sigLocation: rgsig.location
        }
 }
 
-//Create SIG Image, AIB Image and version
+//Create AIB Image and add version to SIG Definition
 module wvd 'wvd-image-builder-module.bicep' = {
   name: 'wvdimagebuilder${wvdsig.name}'
   scope: resourceGroup('${resourceGroupPrefrix}SIG')
   params: {
-    siglocation: sigresourcegroup.location
+    siglocation: rgsig.location
     sigName: sigName
     userAssignedIdentities: '${wvdsig.outputs.uamioutput}'
     imagePublisher: imagePublisher
     imageDefinitionName: imageDefinitionName
     imageOffer: imageOffer
     imageSKU: imageSKU
+    galleryImageId: wvdidoutput
 
       }
     

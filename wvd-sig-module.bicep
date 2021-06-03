@@ -4,6 +4,11 @@ param uamiId string = resourceId('Microsoft.ManagedIdentity/userAssignedIdentiti
 param roleName string = '${'AIBRoleForSIG'}${utcNow()}'
 param sigName string
 param sigLocation string
+param imagePublisher string
+param imageDefinitionName string
+param imageOffer string
+param imageSKU string
+
 
 //Create Shared Image Gallery
 resource wvdsig 'Microsoft.Compute/galleries@2020-09-30' = {
@@ -18,7 +23,7 @@ resource managedidentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-
   location: resourceGroup().location
 }
 
-//create role definition
+//Create Role Definition with added VM Run Action for Image Builder
 resource gallerydef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' = {
   name: guid(roleNameGalleryImage)
   properties: {
@@ -46,7 +51,7 @@ resource gallerydef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview'
 
 output uamioutput string = uamiId
 
-// create role assignment
+// Create Role Assignment
 resource galleryassignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
   name: guid(resourceGroup().id, gallerydef.id, managedidentity.id)
   properties: {
@@ -55,3 +60,32 @@ resource galleryassignment 'Microsoft.Authorization/roleAssignments@2020-04-01-p
     principalType: 'ServicePrincipal'
   }
 }
+
+// Create SIG Image Definition
+resource wvdid 'Microsoft.Compute/galleries/images@2019-07-01' = {
+  name: '${sigName}/${imageDefinitionName}'
+  location: siglocation
+  properties: {
+    osType: 'Windows'
+    osState: 'Generalized'
+    identifier: {
+      publisher: imagePublisher
+      offer: imageOffer
+      sku: imageSKU
+    }
+    recommended: {
+      vCPUs: {
+        min: 2
+        max: 32
+      }
+      memory: {
+        min: 4
+        max: 64
+      }
+    }
+    hyperVGeneration: 'V2'
+  }
+  tags: {}
+}
+
+output wvdidoutput string = wvdid.id

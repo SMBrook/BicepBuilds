@@ -1,39 +1,12 @@
-param sigName string
 param siglocation string
 param imageTemplateName string = '${'WVDBicep'}${utcNow()}'
 param outputname string = uniqueString(resourceGroup().name)
 param rgname string = resourceGroup().name
 param userAssignedIdentities string
+param galleryImageId string
 param imagePublisher string
-param imageDefinitionName string
 param imageOffer string
 param imageSKU string
-
-resource wvdid 'Microsoft.Compute/galleries/images@2019-07-01' = {
-  name: '${sigName}/${imageDefinitionName}'
-  location: siglocation
-  properties: {
-    osType: 'Windows'
-    osState: 'Generalized'
-    identifier: {
-      publisher: imagePublisher
-      offer: imageOffer
-      sku: imageSKU
-    }
-    recommended: {
-      vCPUs: {
-        min: 2
-        max: 32
-      }
-      memory: {
-        min: 4
-        max: 64
-      }
-    }
-    hyperVGeneration: 'V2'
-  }
-  tags: {}
-}
 
 resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplates@2020-02-14' = {
   name: imageTemplateName
@@ -56,9 +29,9 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
     }
     source: {
       type: 'PlatformImage'
-      publisher: 'MicrosoftWindowsDesktop'
-      offer: 'windows-10'
-      sku: '20h2-ent'
+      publisher: imagePublisher
+      offer: imageOffer
+      sku: imageSKU
       version: 'latest'
     }
     customize: [
@@ -99,7 +72,7 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
     distribute: [
       {
         type: 'SharedImage'
-        galleryImageId: wvdid.id
+        galleryImageId: galleryImageId
         runOutputName:  outputname
         artifactTags: {
           source: 'wvd10'
