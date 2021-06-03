@@ -63,8 +63,8 @@ resource galleryassignment 'Microsoft.Authorization/roleAssignments@2020-04-01-p
 
 // Create SIG Image Definition
 resource wvdid 'Microsoft.Compute/galleries/images@2019-07-01' = {
-  name: '${sigName}/${imageDefinitionName}'
-  location: siglocation
+  name: '${wvdsig.name}/${imageDefinitionName}'
+  location: sigLocation
   properties: {
     osType: 'Windows'
     osState: 'Generalized'

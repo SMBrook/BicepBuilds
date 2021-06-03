@@ -61,7 +61,6 @@ module wvdmonitor './wvd-LogAnalytics.bicep' = {
     logAnalyticsWorkspaceSku: logAnalyticsWorkspaceSku
     hostpoolName: hp.name
     workspaceName: ws.name
-    logAnalyticsResourceGroup: logAnalyticsResourceGroup
     wvdBackplaneResourceGroup: wvdBackplaneResourceGroup
   }
 }

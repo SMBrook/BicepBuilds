@@ -38,7 +38,7 @@ param imageDefinitionName string = 'BicepAIBWVDImage'
 param imagePublisher string = 'MicrosoftWindowsDesktop'
 param imageOffer string = 'windows-10'
 param imageSKU string = '20h2-ent'
-param sigName string = '${resourceGroupPrefrix}-SIG'
+param sigName string = 'BicepWVDSIG'
 
 //Get Existing Hub Resource Group Details
 resource hubresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01' existing = {
@@ -96,7 +96,7 @@ module wvdbackplane './wvd-backplane-module.bicep' = {
   }
 }
 
-//Create WVD Netwerk and Subnet
+//Create WVD Network and Subnet
 module wvdnetwork './wvd-network-module.bicep' = {
   name: 'wvdnetwork'
   scope: rgnetw
@@ -164,22 +164,25 @@ module wvdsig 'wvd-sig-module.bicep' = {
     uamiName: uamiName
     sigName: sigName
     sigLocation: rgsig.location
-       }
-}
-
-//Create AIB Image and add version to SIG Definition
-module wvd 'wvd-image-builder-module.bicep' = {
-  name: 'wvdimagebuilder${wvdsig.name}'
-  scope: resourceGroup('${resourceGroupPrefrix}SIG')
-  params: {
-    siglocation: rgsig.location
-    sigName: sigName
-    userAssignedIdentities: '${wvdsig.outputs.uamioutput}'
     imagePublisher: imagePublisher
     imageDefinitionName: imageDefinitionName
     imageOffer: imageOffer
     imageSKU: imageSKU
-    galleryImageId: wvdidoutput
+
+       }
+}
+
+//Create AIB Image and add version to SIG Definition
+module wvdaib 'wvd-image-builder-module.bicep' = {
+  name: 'wvdimagebuilder${wvdsig.name}'
+  scope: rgsig
+  params: {
+    siglocation: rgsig.location
+    userAssignedIdentities: '${wvdsig.outputs.uamioutput}'
+    imagePublisher: imagePublisher
+    imageOffer: imageOffer
+    imageSKU: imageSKU
+    galleryImageId: wvdsig.outputs.wvdidoutput
 
       }
     
