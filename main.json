@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.1.14562",
-      "templateHash": "4290068366067366045"
+      "templateHash": "17969918376057318235"
     }
   },
   "parameters": {
@@ -127,7 +127,7 @@
     },
     "sigName": {
       "type": "string",
-      "defaultValue": "[format('{0}-SIG', parameters('resourceGroupPrefrix'))]"
+      "defaultValue": "BicepWVDSIG"
     }
   },
   "functions": [],
@@ -1011,7 +1011,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.1.14562",
-              "templateHash": "15863996279027800706"
+              "templateHash": "11089448486391046623"
             }
           },
           "parameters": {
@@ -1129,7 +1129,10 @@
                 },
                 "hyperVGeneration": "V2"
               },
-              "tags": {}
+              "tags": {},
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/galleries', parameters('sigName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -1185,7 +1188,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.1.14562",
-              "templateHash": "863009364923386636"
+              "templateHash": "17804082661108837497"
             }
           },
           "parameters": {
@@ -1256,7 +1259,7 @@
                     "name": "OptimizeOS",
                     "runElevated": true,
                     "runAsSystem": true,
-                    "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/1_Optimize_OS_for_WVD.ps1"
+                    "scriptUri": "https://raw.githubusercontent.com/Azure/azvmimagebuilder/blob/main/solutions/14_Building_Images_WVD/1_Optimize_OS_for_WVD.ps1"
                   },
                   {
                     "type": "WindowsRestart",
@@ -1268,7 +1271,7 @@
                     "name": "Install Teams",
                     "runElevated": true,
                     "runAsSystem": true,
-                    "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/2_installTeams.ps1"
+                    "scriptUri": "https://raw.githubusercontent.com/Azure/azvmimagebuilder/blob/main/solutions/14_Building_Images_WVD/2_installTeams.ps1"
                   },
                   {
                     "type": "WindowsRestart",
@@ -1294,9 +1297,7 @@
                       "source": "wvd10",
                       "baseosimg": "windows10"
                     },
-                    "replicationRegions": [
-                      "westeurope"
-                    ]
+                    "replicationRegions": []
                   }
                 ]
               }
@@ -1317,7 +1318,7 @@
                 "forceUpdateTag": "1",
                 "azPowerShellVersion": "3.0",
                 "arguments": "",
-                "scriptContent": "[format('Invoke-AzResourceAction -ResourceName {0} -ResourceGroupName {1} -ResourceType Microsoft.VirtualMachineImages/imageTemplates -ApiVersion \"2020-02-14\" -Action Run -Force', parameters('imageTemplateName'), parameters('rgname'))]",
+                "scriptContent": "[format('Invoke-AzResourceAction -ResourceName {0} -ResourceGroupName {1} -ResourceType Microsoft.VirtualMachineImages/imageTemplates -ApiVersion \"2020-02-14\" -Action Run -Force\r\n\r\n$Timeout = 3600\r\n$timer = [Diagnostics.Stopwatch]::StartNew()\r\n$Result = Get-AzImageBuilderTemplate -ResourceGroupName BICEP-WVD-SIG -Name WVDBicep20210603T101135Z | select LastRunStatusRunState\r\nWrite-Host $Result\r\n\r\nwhile (($timer.Elapsed.TotalSeconds -lt $Timeout) -and ($Result -match \"Running\")) \r\n{{\r\n    Start-Sleep -Seconds 1\r\n    Write-Host -Message \"Still waiting for action to complete after\",($timer.Elapsed.TotalSeconds)\r\n}}\r\n\r\nif ($Result -match \"Failed\") {{\r\n    Write-Host \"Job failed after\" ($timer.Elapsed.TotalSeconds)\r\n}}\r\n\r\nif ($Result -match \"Succeeded\") {{\r\n    Write-Host \"Job completed after\" ($timer.Elapsed.TotalSeconds)\r\n}}\r\n\r\n$timer.Stop()', parameters('imageTemplateName'), parameters('rgname'))]",
                 "timeout": "PT5M",
                 "cleanupPreference": "Always",
                 "retentionInterval": "P1D"

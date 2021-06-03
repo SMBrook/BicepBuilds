@@ -1,0 +1,1 @@
+((Get-Content -Path "psinput.txt" -Raw) -split "(\r*\n){2,}") -replace '\r*\n', '' | Out-File psoutput2.txt
