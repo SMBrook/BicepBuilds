@@ -39,7 +39,11 @@ resource gallerydef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview'
           'Microsoft.Compute/images/write'
           'Microsoft.Compute/images/read'
           'Microsoft.Compute/images/delete'
-          'Microsoft.VirtualMachineImages/imageTemplates/Run/action'
+          'Microsoft.VirtualMachineImages/imageTemplates/Run/action' //Not required if not running Powershell Deployment Script for AIB
+          'Microsoft.Storage/storageAccounts/*'//Not required if not running Powershell Deployment Script for AIB
+          'Microsoft.ContainerInstance/containerGroups/*'//Not required if not running Powershell Deployment Script for AIB
+          'Microsoft.Resources/deployments/*'//Not required if not running Powershell Deployment Script for AIB
+          'Microsoft.Resources/deploymentScripts/*'//Not required if not running Powershell Deployment Script for AIB
         ]
       }
     ]
@@ -60,6 +64,17 @@ resource galleryassignment 'Microsoft.Authorization/roleAssignments@2020-04-01-p
     principalType: 'ServicePrincipal'
   }
 }
+
+// Create Managed Identity Operator Role Assignment - Not required if not running Powershell Deployment Script for AIB
+resource miorole 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(resourceGroup().id, '/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830', managedidentity.id)
+  properties: {
+   roleDefinitionId: '/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830'
+    principalId: managedidentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+ 
 
 // Create SIG Image Definition
 resource wvdid 'Microsoft.Compute/galleries/images@2019-07-01' = {

@@ -87,7 +87,7 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
 resource scriptName_BuildVMImage 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
   name: 'BuildVMImage'
   location: resourceGroup().location
-  kind: 'AzurePowerShell'
+  kind: 'AzureCLI'
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
@@ -96,9 +96,9 @@ resource scriptName_BuildVMImage 'Microsoft.Resources/deploymentScripts@2020-10-
   }
   properties: {
     forceUpdateTag: '1'
-    azPowerShellVersion: '5.9'
+    azCliVersion: '2.15.0'
     arguments: ''
-    scriptContent: 'Invoke-AzResourceAction -ResourceName ${imageTemplateName} -ResourceGroupName ${rgname} -ResourceType Microsoft.VirtualMachineImages/imageTemplates -ApiVersion "2020-02-14" -Action Run -Force\r\n$Timeout = 3600\r\n$timer = [Diagnostics.Stopwatch]::StartNew()\r\n$Result = Get-AzImageBuilderTemplate -ResourceGroupName BICEP-WVD-SIG -Name WVDBicep20210603T101135Z | select LastRunStatusRunState\r\nWrite-Host $Result\r\n\r\nwhile (($timer.Elapsed.TotalSeconds -lt $Timeout) -and ($Result -match "Running")) \r\n{\r\n    Start-Sleep -Seconds 1\r\n    Write-Host -Message "Still waiting for action to complete after",($timer.Elapsed.TotalSeconds)\r\n}\r\n\r\nif ($Result -match "Failed") {\r\n    Write-Host "Job failed after" ($timer.Elapsed.TotalSeconds)\r\n}\r\n\r\nif ($Result -match "Succeeded") {\r\n    Write-Host "Job completed after" ($timer.Elapsed.TotalSeconds)\r\n}\r\n\r\n$timer.Stop()'
+    scriptContent: 'az image builder run --name ${imageTemplateName} --resource-group ${rgname}' // if looking to watch build process until complete add the following (You may get deployment timeouts) '\r\naz image builder wait --name ${imageTemplateName} --resource-group ${rgname} --custom lastRunStatus.runState!=Running'
     timeout: 'PT5M'
     cleanupPreference: 'Always'
     retentionInterval: 'P1D'

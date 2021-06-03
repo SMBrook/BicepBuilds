@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.1.14562",
-      "templateHash": "17969918376057318235"
+      "templateHash": "9042179481021143008"
     }
   },
   "parameters": {
@@ -1011,7 +1011,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.1.14562",
-              "templateHash": "11089448486391046623"
+              "templateHash": "1171020460510779765"
             }
           },
           "parameters": {
@@ -1081,7 +1081,11 @@
                       "Microsoft.Compute/images/write",
                       "Microsoft.Compute/images/read",
                       "Microsoft.Compute/images/delete",
-                      "Microsoft.VirtualMachineImages/imageTemplates/Run/action"
+                      "Microsoft.VirtualMachineImages/imageTemplates/Run/action",
+                      "Microsoft.Storage/storageAccounts/*",
+                      "Microsoft.ContainerInstance/containerGroups/*",
+                      "Microsoft.Resources/deployments/*",
+                      "Microsoft.Resources/deploymentScripts/*"
                     ]
                   }
                 ],
@@ -1101,6 +1105,19 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[guid(resourceGroup().id, '/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')))]",
+              "properties": {
+                "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))).principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
               ]
             },
@@ -1188,7 +1205,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.1.14562",
-              "templateHash": "17804082661108837497"
+              "templateHash": "6064262526711932944"
             }
           },
           "parameters": {
@@ -1259,7 +1276,7 @@
                     "name": "OptimizeOS",
                     "runElevated": true,
                     "runAsSystem": true,
-                    "scriptUri": "https://raw.githubusercontent.com/Azure/azvmimagebuilder/blob/main/solutions/14_Building_Images_WVD/1_Optimize_OS_for_WVD.ps1"
+                    "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/1_Optimize_OS_for_WVD.ps1"
                   },
                   {
                     "type": "WindowsRestart",
@@ -1271,7 +1288,7 @@
                     "name": "Install Teams",
                     "runElevated": true,
                     "runAsSystem": true,
-                    "scriptUri": "https://raw.githubusercontent.com/Azure/azvmimagebuilder/blob/main/solutions/14_Building_Images_WVD/2_installTeams.ps1"
+                    "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/2_installTeams.ps1"
                   },
                   {
                     "type": "WindowsRestart",
@@ -1307,7 +1324,7 @@
               "apiVersion": "2020-10-01",
               "name": "BuildVMImage",
               "location": "[resourceGroup().location]",
-              "kind": "AzurePowerShell",
+              "kind": "AzureCLI",
               "identity": {
                 "type": "UserAssigned",
                 "userAssignedIdentities": {
@@ -1316,9 +1333,9 @@
               },
               "properties": {
                 "forceUpdateTag": "1",
-                "azPowerShellVersion": "3.0",
+                "azCliVersion": "2.15.0",
                 "arguments": "",
-                "scriptContent": "[format('Invoke-AzResourceAction -ResourceName {0} -ResourceGroupName {1} -ResourceType Microsoft.VirtualMachineImages/imageTemplates -ApiVersion \"2020-02-14\" -Action Run -Force\r\n\r\n$Timeout = 3600\r\n$timer = [Diagnostics.Stopwatch]::StartNew()\r\n$Result = Get-AzImageBuilderTemplate -ResourceGroupName BICEP-WVD-SIG -Name WVDBicep20210603T101135Z | select LastRunStatusRunState\r\nWrite-Host $Result\r\n\r\nwhile (($timer.Elapsed.TotalSeconds -lt $Timeout) -and ($Result -match \"Running\")) \r\n{{\r\n    Start-Sleep -Seconds 1\r\n    Write-Host -Message \"Still waiting for action to complete after\",($timer.Elapsed.TotalSeconds)\r\n}}\r\n\r\nif ($Result -match \"Failed\") {{\r\n    Write-Host \"Job failed after\" ($timer.Elapsed.TotalSeconds)\r\n}}\r\n\r\nif ($Result -match \"Succeeded\") {{\r\n    Write-Host \"Job completed after\" ($timer.Elapsed.TotalSeconds)\r\n}}\r\n\r\n$timer.Stop()', parameters('imageTemplateName'), parameters('rgname'))]",
+                "scriptContent": "[format('az image builder run --name {0} --resource-group {1}\r\naz image builder wait --name {2} --resource-group {3} --custom lastRunStatus.runState!=Running', parameters('imageTemplateName'), parameters('rgname'), parameters('imageTemplateName'), parameters('rgname'))]",
                 "timeout": "PT5M",
                 "cleanupPreference": "Always",
                 "retentionInterval": "P1D"
