@@ -1,7 +1,7 @@
 targetScope = 'subscription'
 
-//Define AVD deployment parameters
-param resourceGroupPrefrix string = 'BICEP-AVD-RG-'
+//Define WVD deployment parameters
+param resourceGroupPrefrix string = 'BICEP-WVD-'
 param hostpoolName string = 'myBicepHostpool'
 param hostpoolFriendlyName string = 'My Bicep deployed Hostpool'
 param appgroupName string = 'myBicepAppGroup'
@@ -9,40 +9,37 @@ param appgroupNameFriendlyName string = 'My Bicep deployed Appgroup'
 param workspaceName string = 'myBicepWorkspace'
 param workspaceNameFriendlyName string = 'My Bicep deployed Workspace'
 param preferredAppGroupType string = 'Desktop'
-param avdbackplanelocation string = 'eastus'
+param wvdbackplanelocation string = 'eastus'
 param hostPoolType string = 'pooled'
 param loadBalancerType string = 'BreadthFirst'
-param logAnalyticsWorkspaceName string = 'BicepLAWorkspace'
-param logAnalyticslocation string = 'westeurope'
+param logAnalyticsWorkspaceName string = 'WVDBicepLAWorkspace'
 
 //Define Networking deployment parameters
 param vnetName string = 'bicep-vnet'
-param vnetaddressPrefix string = '10.0.0.0/15'
-param subnetPrefix string = '10.0.1.0/24'
+param vnetaddressPrefix string = '10.60.0.0/15'
+param subnetPrefix string = '10.60.1.0/24'
 param vnetLocation string = 'westeurope'
 param subnetName string = 'bicep-subnet'
+
+//Define Azure Files deployment parameters
+param storageaccountlocation string = 'westeurope'
+param storageaccountName string = 'bicepsa${string(4)}'
+param storageaccountkind string = 'FileStorage'
+param storgeaccountglobalRedundancy string = 'Premium_LRS'
+param fileshareFolderName string = 'profilecontainers'
 
 //Set Peering Hub RG and VNet target parameters
 param hubrg string = 'AzDemoSB-Identity-rg' //Enter the name of the existing Hub/Identity vNet Resource Group 
 param hubvnet string = 'Identity-vnet' //Enter the name of the existing Hub vNet name
 
-//Define Azure Files deployment parameters
-param storageaccountlocation string = 'westeurope'
-param storageaccountName string = 'bicepsa${uniqueString(storageaccountlocation)}' //Make unique before running
-param storageaccountkind string = 'FileStorage'
-param storgeaccountglobalRedundancy string = 'Premium_LRS'
-param fileshareFolderName string = 'profilecontainers'
-
-//Define Shared Image Gallery and Azure Image Parameters
-param sigName string = 'BicepavdSIG'
-param imageDefinitionName string = 'BicepAIBavdImage'
+//Define Shared Image Gallery Parameters
+param uamiName string  = '${'AIBUser'}${utcNow()}'
+param imageDefinitionName string = 'BicepAIBWVDImage'
 param imagePublisher string = 'MicrosoftWindowsDesktop'
 param imageOffer string = 'windows-10'
 param imageSKU string = '20h2-ent'
-
-//Define Azure Image Builder Parameters
-//Set below to true to start the Image Definition build using AIB once deployment completes
-param InvokeRunImageBuildThroughDeploymentScript bool = false
+param sigName string = 'wvdbicepsig'
+param InvokeRunImageBuildThroughDeploymentScript bool = true
 
 //Get Existing Hub Resource Group Details
 resource hubresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01' existing = {
@@ -57,7 +54,7 @@ resource hubsourcevnet 'Microsoft.Network/virtualNetworks@2020-11-01' existing =
 }
 
 //Create Resource Groups
-resource rgavd 'Microsoft.Resources/resourceGroups@2020-06-01' = {
+resource rgwvd 'Microsoft.Resources/resourceGroups@2020-06-01' = {
   name: '${resourceGroupPrefrix}BACKPLANE'
   location: 'westeurope'
 }
@@ -73,15 +70,15 @@ resource rdmon 'Microsoft.Resources/resourceGroups@2020-06-01' = {
   name: '${resourceGroupPrefrix}MONITOR'
   location: 'westeurope'
 }
-resource rgsig 'Microsoft.Resources/resourceGroups@2020-06-01' = {
+resource sigresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01'  = {
   name: '${resourceGroupPrefrix}SIG'
   location: 'westeurope'
 }
 
-//Create avd backplane objects and configure Log Analytics Diagnostics Settings
-module avdbackplane './avd-backplane-module.bicep' = {
-  name: 'avdbackplane'
-  scope: rgavd
+//Create WVD backplane objects and configure Log Analytics Diagnostics Settings
+module wvdbackplane './wvd-backplane-module.bicep' = {
+  name: 'wvdbackplane'
+  scope: rgwvd
   params: {
     hostpoolName: hostpoolName
     hostpoolFriendlyName: hostpoolFriendlyName
@@ -91,19 +88,18 @@ module avdbackplane './avd-backplane-module.bicep' = {
     workspaceNameFriendlyName: workspaceNameFriendlyName
     preferredAppGroupType: preferredAppGroupType
     applicationgrouptype: preferredAppGroupType
-    avdbackplanelocation: avdbackplanelocation
+    wvdbackplanelocation: wvdbackplanelocation
     hostPoolType: hostPoolType
     loadBalancerType: loadBalancerType
     logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
-    logAnalyticslocation: logAnalyticslocation
     logAnalyticsResourceGroup: rdmon.name
-    avdBackplaneResourceGroup: rgavd.name
+    wvdBackplaneResourceGroup: rgwvd.name
   }
 }
 
-//Create avd Netwerk and Subnet
-module avdnetwork './avd-network-module.bicep' = {
-  name: 'avdnetwork'
+//Create WVD Network and Subnet
+module wvdnetwork './wvd-network-module.bicep' = {
+  name: 'wvdnetwork'
   scope: rgnetw
   params: {
     vnetName: vnetName
@@ -114,9 +110,9 @@ module avdnetwork './avd-network-module.bicep' = {
   }
 }
 
-//Create avd Azure File Services and FileShare`
-module avdFileServices './avd-fileservices-module.bicep' = {
-  name: 'avdFileServices'
+//Create WVD Azure File Services and FileShare`
+module wvdFileServices './wvd-fileservices-module.bicep' = {
+  name: 'wvdFileServices'
   scope: rgfs
   params: {
     storageaccountlocation: storageaccountlocation
@@ -128,63 +124,63 @@ module avdFileServices './avd-fileservices-module.bicep' = {
 }
 
 //Create Private Endpoint for file storage
-module pep './avd-fileservices-privateendpoint-module.bicep' = {
+module pep './wvd-fileservices-privateendpoint-module.bicep' = {
   name: 'privateEndpoint'
   scope: rgnetw
   params: {
     location: vnetLocation
     privateEndpointName: 'pep-sto'
-    storageAccountId: avdFileServices.outputs.storageAccountId
-    vnetId: avdnetwork.outputs.vnetId
-    subnetId: avdnetwork.outputs.subnetId
+    storageAccountId: wvdFileServices.outputs.storageAccountId
+    vnetId: wvdnetwork.outputs.vnetId
+    subnetId: wvdnetwork.outputs.subnetId
   }
 }
 
-//Create Peering from AVD vNet to Hub vNet
-module avdpeering './avd-peering-from-vnet-to-hub-module.bicep' = {
-  name: '${avdnetwork.name}peerto${hubsourcevnet.name}'
+//Create Peering from WVD vNet to Hub vNet
+module wvdpeering './wvd-peering-from-vnet-to-hub-module.bicep' = {
+  name: '${wvdnetwork.name}peerto${hubsourcevnet.name}'
   scope: rgnetw
   params:{
-    peeringnamefromavdvnet : '${vnetName}/${vnetName}-to-${hubsourcevnet.name}'
+    peeringnamefromwvdvnet : '${vnetName}/${vnetName}-to-${hubsourcevnet.name}'
     hubvnetid : hubsourcevnet.id
   }
 }
 
-//Create Peering from Hub vNet to AVD vNet
-module hubpeering './avd-peering-from-hub-to-vnet-module.bicep' = {
-  name: '${hubsourcevnet.name}peerto${avdnetwork.name}'
+//Create Peering from Hub vNet to WVD vNet
+module hubpeering './wvd-peering-from-hub-to-vnet-module.bicep' = {
+  name: '${hubsourcevnet.name}peerto${wvdnetwork.name}'
   scope: hubresourcegroup
   params:{
     peeringnamefromhubvnet : '${hubsourcevnet.name}/${hubsourcevnet.name}-to-${vnetName}'
-    avdvnetid : avdnetwork.outputs.vnetId
+    wvdvnetid : wvdnetwork.outputs.vnetId
   }
 }
 
-//Create avd Shared Image Gallery and Image Definition
-module avdsig './avd-sig-module.bicep' = {
-  name: 'avdsig'
-  scope: rgsig
+
+//Create WVD Shared Image Gallery
+module wvdsig 'wvd-sig-module.bicep' = {
+  name: 'wvdsig'
+  scope: sigresourcegroup
   params: {
+    uamiName: uamiName
     sigName: sigName
-    sigLocation: rgsig.location
+    sigLocation: sigresourcegroup.location
+       }
+}
+
+//Create SIG Image, AIB Image and version
+module wvd 'wvd-image-builder-module.bicep' = {
+  name: 'wvdimagebuilder${wvdsig.name}'
+  scope: resourceGroup('${resourceGroupPrefrix}SIG')
+  params: {
+    siglocation: sigresourcegroup.location
+    sigName: sigName
+    userAssignedIdentities: '${wvdsig.outputs.uamioutput}'
     imagePublisher: imagePublisher
     imageDefinitionName: imageDefinitionName
     imageOffer: imageOffer
     imageSKU: imageSKU
-  }
-}
 
-//Create AIB Image and optionally build and add version to SIG Definition
-module avdaib './avd-image-builder-module.bicep' = {
-  name: 'avdimagebuilder${avdsig.name}'
-  scope: rgsig
-  params: {
-    roleNameGalleryImage: '${'BicepSIGRole'}'
-    siglocation: rgsig.location
-    imagePublisher: imagePublisher
-    imageOffer: imageOffer
-    imageSKU: imageSKU
-    galleryImageId: avdsig.outputs.avdidoutput
-    InvokeRunImageBuildThroughDeploymentScript: InvokeRunImageBuildThroughDeploymentScript
-  }
-}
+      }
+    
+    }

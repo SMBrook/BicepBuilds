@@ -1,4 +1,4 @@
-param wvdvnetid string
+param avdvnetid string
 param peeringnamefromhubvnet string
 
 resource hubpeer 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-05-01' = {
@@ -9,7 +9,7 @@ resource hubpeer 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-
     allowGatewayTransit: false
     useRemoteGateways: false
     remoteVirtualNetwork: {
-      id: wvdvnetid
+      id: avdvnetid
     }
   }
 }

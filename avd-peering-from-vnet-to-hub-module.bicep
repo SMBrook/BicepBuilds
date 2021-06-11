@@ -1,8 +1,8 @@
 param hubvnetid string
-param peeringnamefromwvdvnet string
+param peeringnamefromavdvnet string
 
-resource wvdpeer 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-05-01' = {
-  name: peeringnamefromwvdvnet
+resource avdpeer 'microsoft.network/virtualNetworks/virtualNetworkPeerings@2020-05-01' = {
+  name: peeringnamefromavdvnet
   properties: {
     allowVirtualNetworkAccess: true
     allowForwardedTraffic: false
