@@ -17,8 +17,8 @@ param logAnalyticslocation string = 'westeurope'
 
 //Define Networking deployment parameters
 param vnetName string = 'bicep-vnet'
-param vnetaddressPrefix string = '10.0.0.0/15'
-param subnetPrefix string = '10.0.1.0/24'
+param vnetaddressPrefix string = '10.80.0.0/15'
+param subnetPrefix string = '10.80.1.0/24'
 param vnetLocation string = 'westeurope'
 param subnetName string = 'bicep-subnet'
 
@@ -38,11 +38,12 @@ param sigName string = 'BicepavdSIG'
 param imageDefinitionName string = 'BicepAIBavdImage'
 param imagePublisher string = 'MicrosoftWindowsDesktop'
 param imageOffer string = 'windows-10'
-param imageSKU string = '20h2-ent'
+param imageSKU string = '21h1-evd-g2'
+param uamiName string = '${'AIBUser'}${utcNow()}'
 
 //Define Azure Image Builder Parameters
 //Set below to true to start the Image Definition build using AIB once deployment completes
-param InvokeRunImageBuildThroughDeploymentScript bool = false
+param InvokeRunImageBuildThroughDeploymentScript bool = true
 
 //Get Existing Hub Resource Group Details
 resource hubresourcegroup 'Microsoft.Resources/resourceGroups@2020-06-01' existing = {
@@ -171,6 +172,8 @@ module avdsig './avd-sig-module.bicep' = {
     imageDefinitionName: imageDefinitionName
     imageOffer: imageOffer
     imageSKU: imageSKU
+    uamiName: uamiName
+    roleNameGalleryImage: '${'BicepSIGRole'}'
   }
 }
 
@@ -179,8 +182,8 @@ module avdaib './avd-image-builder-module.bicep' = {
   name: 'avdimagebuilder${avdsig.name}'
   scope: rgsig
   params: {
-    roleNameGalleryImage: '${'BicepSIGRole'}'
     siglocation: rgsig.location
+    uamiName: uamiName
     imagePublisher: imagePublisher
     imageOffer: imageOffer
     imageSKU: imageSKU

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.1.14562",
-      "templateHash": "12327920522392236541"
+      "templateHash": "2392147899302167897"
     }
   },
   "parameters": {
@@ -81,6 +81,14 @@
       "type": "string",
       "defaultValue": "bicep-subnet"
     },
+    "hubrg": {
+      "type": "string",
+      "defaultValue": "AzDemoSB-Identity-rg"
+    },
+    "hubvnet": {
+      "type": "string",
+      "defaultValue": "Identity-vnet"
+    },
     "storageaccountlocation": {
       "type": "string",
       "defaultValue": "westeurope"
@@ -119,11 +127,15 @@
     },
     "imageSKU": {
       "type": "string",
-      "defaultValue": "20h2-ent"
+      "defaultValue": "21h1-evd-g2"
+    },
+    "uamiName": {
+      "type": "string",
+      "defaultValue": "[format('{0}{1}', 'AIBUser', utcNow())]"
     },
     "InvokeRunImageBuildThroughDeploymentScript": {
       "type": "bool",
-      "defaultValue": false
+      "defaultValue": true
     }
   },
   "functions": [],
@@ -852,6 +864,125 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2019-10-01",
+      "name": "[format('{0}peerto{1}', 'avdnetwork', parameters('hubvnet'))]",
+      "resourceGroup": "[format('{0}NETWORK', parameters('resourceGroupPrefrix'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "peeringnamefromavdvnet": {
+            "value": "[format('{0}/{1}-to-{2}', parameters('vnetName'), parameters('vnetName'), parameters('hubvnet'))]"
+          },
+          "hubvnetid": {
+            "value": "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('hubrg')), 'Microsoft.Network/virtualNetworks', parameters('hubvnet'))]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.4.1.14562",
+              "templateHash": "14701170944611278666"
+            }
+          },
+          "parameters": {
+            "hubvnetid": {
+              "type": "string"
+            },
+            "peeringnamefromavdvnet": {
+              "type": "string"
+            }
+          },
+          "functions": [],
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+              "apiVersion": "2020-05-01",
+              "name": "[parameters('peeringnamefromavdvnet')]",
+              "properties": {
+                "allowVirtualNetworkAccess": true,
+                "allowForwardedTraffic": false,
+                "allowGatewayTransit": false,
+                "useRemoteGateways": false,
+                "remoteVirtualNetwork": {
+                  "id": "[parameters('hubvnetid')]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}NETWORK', parameters('resourceGroupPrefrix'))), 'Microsoft.Resources/deployments', 'avdnetwork')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('{0}NETWORK', parameters('resourceGroupPrefrix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "[format('{0}peerto{1}', parameters('hubvnet'), 'avdnetwork')]",
+      "resourceGroup": "[parameters('hubrg')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "peeringnamefromhubvnet": {
+            "value": "[format('{0}/{1}-to-{2}', parameters('hubvnet'), parameters('hubvnet'), parameters('vnetName'))]"
+          },
+          "avdvnetid": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}NETWORK', parameters('resourceGroupPrefrix'))), 'Microsoft.Resources/deployments', 'avdnetwork'), '2019-10-01').outputs.vnetId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.4.1.14562",
+              "templateHash": "10867878313936235526"
+            }
+          },
+          "parameters": {
+            "avdvnetid": {
+              "type": "string"
+            },
+            "peeringnamefromhubvnet": {
+              "type": "string"
+            }
+          },
+          "functions": [],
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+              "apiVersion": "2020-05-01",
+              "name": "[parameters('peeringnamefromhubvnet')]",
+              "properties": {
+                "allowVirtualNetworkAccess": true,
+                "allowForwardedTraffic": false,
+                "allowGatewayTransit": false,
+                "useRemoteGateways": false,
+                "remoteVirtualNetwork": {
+                  "id": "[parameters('avdvnetid')]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}NETWORK', parameters('resourceGroupPrefrix'))), 'Microsoft.Resources/deployments', 'avdnetwork')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
       "name": "avdsig",
       "resourceGroup": "[format('{0}SIG', parameters('resourceGroupPrefrix'))]",
       "properties": {
@@ -877,6 +1008,12 @@
           },
           "imageSKU": {
             "value": "[parameters('imageSKU')]"
+          },
+          "uamiName": {
+            "value": "[parameters('uamiName')]"
+          },
+          "roleNameGalleryImage": {
+            "value": "BicepSIGRole"
           }
         },
         "template": {
@@ -886,7 +1023,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.4.1.14562",
-              "templateHash": "1461155323732828828"
+              "templateHash": "15148666764479766584"
             }
           },
           "parameters": {
@@ -907,6 +1044,12 @@
             },
             "imageSKU": {
               "type": "string"
+            },
+            "uamiName": {
+              "type": "string"
+            },
+            "roleNameGalleryImage": {
+              "type": "string"
             }
           },
           "functions": [],
@@ -917,141 +1060,6 @@
               "name": "[parameters('sigName')]",
               "location": "[parameters('sigLocation')]"
             },
-            {
-              "type": "Microsoft.Compute/galleries/images",
-              "apiVersion": "2019-07-01",
-              "name": "[format('{0}/{1}', parameters('sigName'), parameters('imageDefinitionName'))]",
-              "location": "[parameters('sigLocation')]",
-              "properties": {
-                "osType": "Windows",
-                "osState": "Generalized",
-                "identifier": {
-                  "publisher": "[parameters('imagePublisher')]",
-                  "offer": "[parameters('imageOffer')]",
-                  "sku": "[parameters('imageSKU')]"
-                },
-                "recommended": {
-                  "vCPUs": {
-                    "min": 2,
-                    "max": 32
-                  },
-                  "memory": {
-                    "min": 4,
-                    "max": 64
-                  }
-                },
-                "hyperVGeneration": "V2"
-              },
-              "tags": {},
-              "dependsOn": [
-                "[resourceId('Microsoft.Compute/galleries', parameters('sigName'))]"
-              ]
-            }
-          ],
-          "outputs": {
-            "avdidoutput": {
-              "type": "string",
-              "value": "[resourceId('Microsoft.Compute/galleries/images', split(format('{0}/{1}', parameters('sigName'), parameters('imageDefinitionName')), '/')[0], split(format('{0}/{1}', parameters('sigName'), parameters('imageDefinitionName')), '/')[1])]"
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('{0}SIG', parameters('resourceGroupPrefrix')))]"
-      ]
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2019-10-01",
-      "name": "[format('avdimagebuilder{0}', 'avdsig')]",
-      "resourceGroup": "[format('{0}SIG', parameters('resourceGroupPrefrix'))]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "roleNameGalleryImage": {
-            "value": "BicepSIGRole"
-          },
-          "siglocation": {
-            "value": "[reference(subscriptionResourceId('Microsoft.Resources/resourceGroups', format('{0}SIG', parameters('resourceGroupPrefrix'))), '2020-06-01', 'full').location]"
-          },
-          "imagePublisher": {
-            "value": "[parameters('imagePublisher')]"
-          },
-          "imageOffer": {
-            "value": "[parameters('imageOffer')]"
-          },
-          "imageSKU": {
-            "value": "[parameters('imageSKU')]"
-          },
-          "galleryImageId": {
-            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}SIG', parameters('resourceGroupPrefrix'))), 'Microsoft.Resources/deployments', 'avdsig'), '2019-10-01').outputs.avdidoutput.value]"
-          },
-          "InvokeRunImageBuildThroughDeploymentScript": {
-            "value": "[parameters('InvokeRunImageBuildThroughDeploymentScript')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.4.1.14562",
-              "templateHash": "4651884188456619268"
-            }
-          },
-          "parameters": {
-            "siglocation": {
-              "type": "string"
-            },
-            "roleNameGalleryImage": {
-              "type": "string"
-            },
-            "roleNameAIBCustom": {
-              "type": "string",
-              "defaultValue": "[format('{0}{1}', 'BicepAIB', utcNow())]"
-            },
-            "uamiName": {
-              "type": "string",
-              "defaultValue": "[format('{0}{1}', 'AIBUser', utcNow())]"
-            },
-            "uamiId": {
-              "type": "string",
-              "defaultValue": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
-            },
-            "imageTemplateName": {
-              "type": "string",
-              "defaultValue": "[format('{0}{1}', 'AVDBicep', utcNow())]"
-            },
-            "outputname": {
-              "type": "string",
-              "defaultValue": "[uniqueString(resourceGroup().name)]"
-            },
-            "galleryImageId": {
-              "type": "string"
-            },
-            "imagePublisher": {
-              "type": "string"
-            },
-            "imageOffer": {
-              "type": "string"
-            },
-            "imageSKU": {
-              "type": "string"
-            },
-            "InvokeRunImageBuildThroughDeploymentScript": {
-              "type": "bool"
-            },
-            "rgname": {
-              "type": "string",
-              "defaultValue": "[resourceGroup().name]"
-            }
-          },
-          "functions": [],
-          "resources": [
             {
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2018-11-30",
@@ -1101,14 +1109,148 @@
               ]
             },
             {
+              "type": "Microsoft.Compute/galleries/images",
+              "apiVersion": "2019-07-01",
+              "name": "[format('{0}/{1}', parameters('sigName'), parameters('imageDefinitionName'))]",
+              "location": "[parameters('sigLocation')]",
+              "properties": {
+                "osType": "Windows",
+                "osState": "Generalized",
+                "identifier": {
+                  "publisher": "[parameters('imagePublisher')]",
+                  "offer": "[parameters('imageOffer')]",
+                  "sku": "[parameters('imageSKU')]"
+                },
+                "recommended": {
+                  "vCPUs": {
+                    "min": 2,
+                    "max": 32
+                  },
+                  "memory": {
+                    "min": 4,
+                    "max": 64
+                  }
+                },
+                "hyperVGeneration": "V2"
+              },
+              "tags": {},
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/galleries', parameters('sigName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "sigid": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))).roleName]"
+            },
+            "avdidoutput": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Compute/galleries/images', split(format('{0}/{1}', parameters('sigName'), parameters('imageDefinitionName')), '/')[0], split(format('{0}/{1}', parameters('sigName'), parameters('imageDefinitionName')), '/')[1])]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('{0}SIG', parameters('resourceGroupPrefrix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-10-01",
+      "name": "[format('avdimagebuilder{0}', 'avdsig')]",
+      "resourceGroup": "[format('{0}SIG', parameters('resourceGroupPrefrix'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "siglocation": {
+            "value": "[reference(subscriptionResourceId('Microsoft.Resources/resourceGroups', format('{0}SIG', parameters('resourceGroupPrefrix'))), '2020-06-01', 'full').location]"
+          },
+          "uamiName": {
+            "value": "[parameters('uamiName')]"
+          },
+          "imagePublisher": {
+            "value": "[parameters('imagePublisher')]"
+          },
+          "imageOffer": {
+            "value": "[parameters('imageOffer')]"
+          },
+          "imageSKU": {
+            "value": "[parameters('imageSKU')]"
+          },
+          "galleryImageId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('{0}SIG', parameters('resourceGroupPrefrix'))), 'Microsoft.Resources/deployments', 'avdsig'), '2019-10-01').outputs.avdidoutput.value]"
+          },
+          "InvokeRunImageBuildThroughDeploymentScript": {
+            "value": "[parameters('InvokeRunImageBuildThroughDeploymentScript')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.4.1.14562",
+              "templateHash": "7926173393065109309"
+            }
+          },
+          "parameters": {
+            "siglocation": {
+              "type": "string"
+            },
+            "roleNameAIBCustom": {
+              "type": "string",
+              "defaultValue": "[format('{0}{1}', 'BicepAIB', utcNow())]"
+            },
+            "uamiName": {
+              "type": "string"
+            },
+            "uamiId": {
+              "type": "string",
+              "defaultValue": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
+            },
+            "imageTemplateName": {
+              "type": "string",
+              "defaultValue": "[format('{0}{1}', 'AVDBicep', utcNow())]"
+            },
+            "outputname": {
+              "type": "string",
+              "defaultValue": "[uniqueString(resourceGroup().name)]"
+            },
+            "galleryImageId": {
+              "type": "string"
+            },
+            "imagePublisher": {
+              "type": "string"
+            },
+            "imageOffer": {
+              "type": "string"
+            },
+            "imageSKU": {
+              "type": "string"
+            },
+            "InvokeRunImageBuildThroughDeploymentScript": {
+              "type": "bool"
+            },
+            "rgname": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().name]"
+            }
+          },
+          "functions": [],
+          "resources": [
+            {
               "type": "Microsoft.VirtualMachineImages/imageTemplates",
               "apiVersion": "2020-02-14",
               "name": "[parameters('imageTemplateName')]",
               "location": "[parameters('siglocation')]",
               "tags": {
                 "imagebuilderTemplate": "AzureImageBuilderSIG",
-                "userIdentity": "enabled",
-                "UAMIRole": "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]"
+                "userIdentity": "enabled"
               },
               "identity": {
                 "type": "UserAssigned",
@@ -1119,7 +1261,7 @@
               "properties": {
                 "buildTimeoutInMinutes": 180,
                 "vmProfile": {
-                  "vmSize": "Standard_D2_v2",
+                  "vmSize": "Standard_B2ms",
                   "osDiskSizeGB": 127
                 },
                 "source": {
@@ -1129,6 +1271,41 @@
                   "sku": "[parameters('imageSKU')]",
                   "version": "latest"
                 },
+                "customize": [
+                  {
+                    "type": "PowerShell",
+                    "name": "OptimizeOS",
+                    "runElevated": true,
+                    "runAsSystem": true,
+                    "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_AVD/1_Optimize_OS_for_AVD.ps1"
+                  },
+                  {
+                    "type": "WindowsRestart",
+                    "restartCheckCommand": "write-host 'restarting post Optimizations'",
+                    "restartTimeout": "5m"
+                  },
+                  {
+                    "type": "PowerShell",
+                    "name": "Install Teams",
+                    "runElevated": true,
+                    "runAsSystem": true,
+                    "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_AVD/2_installTeams.ps1"
+                  },
+                  {
+                    "type": "WindowsRestart",
+                    "restartCheckCommand": "write-host 'restarting post Teams Install'",
+                    "restartTimeout": "5m"
+                  },
+                  {
+                    "type": "WindowsUpdate",
+                    "searchCriteria": "IsInstalled=0",
+                    "filters": [
+                      "exclude:$_.Title -like '*Preview*'",
+                      "include:$true"
+                    ],
+                    "updateLimit": 40
+                  }
+                ],
                 "distribute": [
                   {
                     "type": "SharedImage",
@@ -1141,12 +1318,7 @@
                     "replicationRegions": []
                   }
                 ]
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Authorization/roleAssignments', guid(resourceGroup().id, resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))))]",
-                "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]",
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
-              ]
+              }
             },
             {
               "condition": "[parameters('InvokeRunImageBuildThroughDeploymentScript')]",
@@ -1179,12 +1351,11 @@
               "name": "[guid(resourceGroup().id, resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameAIBCustom'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')))]",
               "properties": {
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameAIBCustom')))]",
-                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))).principalId]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), '2018-11-30').principalId]",
                 "principalType": "ServicePrincipal"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameAIBCustom')))]",
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
+                "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameAIBCustom')))]"
               ]
             },
             {
@@ -1194,12 +1365,9 @@
               "name": "[guid(resourceGroup().id, '/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')))]",
               "properties": {
                 "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830",
-                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))).principalId]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), '2018-11-30').principalId]",
                 "principalType": "ServicePrincipal"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
-              ]
+              }
             },
             {
               "condition": "[parameters('InvokeRunImageBuildThroughDeploymentScript')]",
@@ -1227,13 +1395,7 @@
                 "[resourceId('Microsoft.VirtualMachineImages/imageTemplates', parameters('imageTemplateName'))]"
               ]
             }
-          ],
-          "outputs": {
-            "sigid": {
-              "type": "string",
-              "value": "[reference(resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))).roleName]"
-            }
-          }
+          ]
         }
       },
       "dependsOn": [

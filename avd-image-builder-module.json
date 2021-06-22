@@ -5,14 +5,11 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.1.14562",
-      "templateHash": "4651884188456619268"
+      "templateHash": "7926173393065109309"
     }
   },
   "parameters": {
     "siglocation": {
-      "type": "string"
-    },
-    "roleNameGalleryImage": {
       "type": "string"
     },
     "roleNameAIBCustom": {
@@ -20,8 +17,7 @@
       "defaultValue": "[format('{0}{1}', 'BicepAIB', utcNow())]"
     },
     "uamiName": {
-      "type": "string",
-      "defaultValue": "[format('{0}{1}', 'AIBUser', utcNow())]"
+      "type": "string"
     },
     "uamiId": {
       "type": "string",
@@ -58,62 +54,13 @@
   "functions": [],
   "resources": [
     {
-      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-      "apiVersion": "2018-11-30",
-      "name": "[parameters('uamiName')]",
-      "location": "[resourceGroup().location]"
-    },
-    {
-      "type": "Microsoft.Authorization/roleDefinitions",
-      "apiVersion": "2018-01-01-preview",
-      "name": "[guid(parameters('roleNameGalleryImage'))]",
-      "properties": {
-        "roleName": "[parameters('roleNameGalleryImage')]",
-        "description": "Custom role for SIG and AIB",
-        "permissions": [
-          {
-            "actions": [
-              "Microsoft.Compute/galleries/read",
-              "Microsoft.Compute/galleries/images/read",
-              "Microsoft.Compute/galleries/images/versions/read",
-              "Microsoft.Compute/galleries/images/versions/write",
-              "Microsoft.Compute/images/write",
-              "Microsoft.Compute/images/read",
-              "Microsoft.Compute/images/delete"
-            ]
-          }
-        ],
-        "assignableScopes": [
-          "[resourceGroup().id]"
-        ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
-      ]
-    },
-    {
-      "type": "Microsoft.Authorization/roleAssignments",
-      "apiVersion": "2020-04-01-preview",
-      "name": "[guid(resourceGroup().id, resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')))]",
-      "properties": {
-        "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]",
-        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))).principalId]",
-        "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]",
-        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
-      ]
-    },
-    {
       "type": "Microsoft.VirtualMachineImages/imageTemplates",
       "apiVersion": "2020-02-14",
       "name": "[parameters('imageTemplateName')]",
       "location": "[parameters('siglocation')]",
       "tags": {
         "imagebuilderTemplate": "AzureImageBuilderSIG",
-        "userIdentity": "enabled",
-        "UAMIRole": "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]"
+        "userIdentity": "enabled"
       },
       "identity": {
         "type": "UserAssigned",
@@ -124,7 +71,7 @@
       "properties": {
         "buildTimeoutInMinutes": 180,
         "vmProfile": {
-          "vmSize": "Standard_D2_v2",
+          "vmSize": "Standard_B2ms",
           "osDiskSizeGB": 127
         },
         "source": {
@@ -134,6 +81,41 @@
           "sku": "[parameters('imageSKU')]",
           "version": "latest"
         },
+        "customize": [
+          {
+            "type": "PowerShell",
+            "name": "OptimizeOS",
+            "runElevated": true,
+            "runAsSystem": true,
+            "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_AVD/1_Optimize_OS_for_AVD.ps1"
+          },
+          {
+            "type": "WindowsRestart",
+            "restartCheckCommand": "write-host 'restarting post Optimizations'",
+            "restartTimeout": "5m"
+          },
+          {
+            "type": "PowerShell",
+            "name": "Install Teams",
+            "runElevated": true,
+            "runAsSystem": true,
+            "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_AVD/2_installTeams.ps1"
+          },
+          {
+            "type": "WindowsRestart",
+            "restartCheckCommand": "write-host 'restarting post Teams Install'",
+            "restartTimeout": "5m"
+          },
+          {
+            "type": "WindowsUpdate",
+            "searchCriteria": "IsInstalled=0",
+            "filters": [
+              "exclude:$_.Title -like '*Preview*'",
+              "include:$true"
+            ],
+            "updateLimit": 40
+          }
+        ],
         "distribute": [
           {
             "type": "SharedImage",
@@ -146,12 +128,7 @@
             "replicationRegions": []
           }
         ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Authorization/roleAssignments', guid(resourceGroup().id, resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))))]",
-        "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))]",
-        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
-      ]
+      }
     },
     {
       "condition": "[parameters('InvokeRunImageBuildThroughDeploymentScript')]",
@@ -184,12 +161,11 @@
       "name": "[guid(resourceGroup().id, resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameAIBCustom'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')))]",
       "properties": {
         "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameAIBCustom')))]",
-        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))).principalId]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), '2018-11-30').principalId]",
         "principalType": "ServicePrincipal"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameAIBCustom')))]",
-        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
+        "[resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameAIBCustom')))]"
       ]
     },
     {
@@ -199,12 +175,9 @@
       "name": "[guid(resourceGroup().id, '/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')))]",
       "properties": {
         "roleDefinitionId": "/providers/Microsoft.Authorization/roleDefinitions/f1a07417-d97a-45cb-824c-7a7467783830",
-        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))).principalId]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName')), '2018-11-30').principalId]",
         "principalType": "ServicePrincipal"
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uamiName'))]"
-      ]
+      }
     },
     {
       "condition": "[parameters('InvokeRunImageBuildThroughDeploymentScript')]",
@@ -232,11 +205,5 @@
         "[resourceId('Microsoft.VirtualMachineImages/imageTemplates', parameters('imageTemplateName'))]"
       ]
     }
-  ],
-  "outputs": {
-    "sigid": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Authorization/roleDefinitions', guid(parameters('roleNameGalleryImage')))).roleName]"
-    }
-  }
+  ]
 }

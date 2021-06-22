@@ -1,7 +1,6 @@
 param siglocation string
-param roleNameGalleryImage string
 param roleNameAIBCustom string = '${'BicepAIB'}${utcNow()}'
-param uamiName string = '${'AIBUser'}${utcNow()}'
+param uamiName string
 param uamiId string = resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', uamiName)
 param imageTemplateName string = '${'AVDBicep'}${utcNow()}'
 param outputname string = uniqueString(resourceGroup().name)
@@ -12,54 +11,8 @@ param imageSKU string
 param InvokeRunImageBuildThroughDeploymentScript bool
 param rgname string = resourceGroup().name
 
-// Create User-Assigned Managed Identity
-
-resource managedidentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
+resource managedidentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' existing = {
   name: uamiName
-  location: resourceGroup().location
-}
-
-//Create Role Definition with added VM Run Action for Image Builder to map to SIG Resource Group
-resource gallerydef 'Microsoft.Authorization/roleDefinitions@2018-01-01-preview' = {
-  name: guid(roleNameGalleryImage)
-  properties: {
-    roleName: roleNameGalleryImage
-    description: 'Custom role for SIG and AIB'
-    permissions: [
-      {
-        actions: [
-          'Microsoft.Compute/galleries/read'
-          'Microsoft.Compute/galleries/images/read'
-          'Microsoft.Compute/galleries/images/versions/read'
-          'Microsoft.Compute/galleries/images/versions/write'
-          'Microsoft.Compute/images/write'
-          'Microsoft.Compute/images/read'
-          'Microsoft.Compute/images/delete'
-        ]
-      }
-    ]
-    assignableScopes: [
-      resourceGroup().id
-    ]
-  }
-  dependsOn: [
-    managedidentity
-  ]
-}
-
-output sigid string = gallerydef.properties.roleName
-
-// Map Standard SIG Custom Role Assignment to Managed Identity
-resource galleryassignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(resourceGroup().id, gallerydef.id, managedidentity.id)
-  properties: {
-    roleDefinitionId: gallerydef.id
-    principalId: managedidentity.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    gallerydef
-  ]
 }
 
 // Create Image Template in SIG Resource Group
@@ -70,7 +23,6 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
   tags: {
     imagebuilderTemplate: 'AzureImageBuilderSIG'
     userIdentity: 'enabled'
-    UAMIRole: gallerydef.id
   }
   identity: {
     type: 'UserAssigned'
@@ -81,7 +33,7 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
   properties: {
     buildTimeoutInMinutes: 180
     vmProfile: {
-      vmSize: 'Standard_D2_v2'
+      vmSize: 'Standard_B2ms'
       osDiskSizeGB: 127
     }
     source: {
@@ -91,14 +43,13 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
       sku: imageSKU
       version: 'latest'
     }
-      /* Uncomment if you wish to run OS Optimize Script, Teams Installer and Windows Updates
     customize: [
       {
         type: 'PowerShell'
         name: 'OptimizeOS'
         runElevated: true
         runAsSystem: true
-        scriptUri: 'https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_AVD/1_Optimize_OS_for_AVD.ps1'
+        scriptUri: 'https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/1_Optimize_OS_for_WVD.ps1'
       }
       {
         type: 'WindowsRestart'
@@ -110,7 +61,7 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
         name: 'Install Teams'
         runElevated: true
         runAsSystem: true
-        scriptUri: 'https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_AVD/2_installTeams.ps1'
+        scriptUri: 'https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/2_installTeams.ps1'
       }
       {
         type: 'WindowsRestart'
@@ -127,7 +78,6 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
         updateLimit: 40
       }
     ]
-    */
     distribute: [
       {
         type: 'SharedImage'
@@ -141,9 +91,6 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
       }
     ]
   }
-  dependsOn: [
-    galleryassignment
-  ]
 }
 
 //Create Role Definition with Image Builder to run Image Build and execute container cli script
