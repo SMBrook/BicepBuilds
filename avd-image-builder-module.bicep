@@ -33,7 +33,7 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
   properties: {
     buildTimeoutInMinutes: 180
     vmProfile: {
-      vmSize: 'Standard_B2ms'
+      vmSize: 'Standard_D8as_v4'
       osDiskSizeGB: 127
     }
     source: {
@@ -56,7 +56,7 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
         restartCheckCommand: 'write-host \'restarting post Optimizations\''
         restartTimeout: '5m'
       }
-      {
+      /* {
         type: 'PowerShell'
         name: 'Install Teams'
         runElevated: true
@@ -76,7 +76,7 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
           'include:$true'
         ]
         updateLimit: 40
-      }
+      }*/
     ]
     distribute: [
       {
@@ -87,7 +87,9 @@ resource imageTemplateName_resource 'Microsoft.VirtualMachineImages/imageTemplat
           source: 'avd10'
           baseosimg: 'windows10'
         }
-        replicationRegions: []
+        replicationRegions: [
+          'westeurope'
+        ]
       }
     ]
   }

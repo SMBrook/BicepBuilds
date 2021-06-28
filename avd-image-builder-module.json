@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.4.1.14562",
-      "templateHash": "7926173393065109309"
+      "templateHash": "4209238484377151109"
     }
   },
   "parameters": {
@@ -71,7 +71,7 @@
       "properties": {
         "buildTimeoutInMinutes": 180,
         "vmProfile": {
-          "vmSize": "Standard_B2ms",
+          "vmSize": "Standard_D8as_v4",
           "osDiskSizeGB": 127
         },
         "source": {
@@ -87,33 +87,12 @@
             "name": "OptimizeOS",
             "runElevated": true,
             "runAsSystem": true,
-            "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_AVD/1_Optimize_OS_for_AVD.ps1"
+            "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_WVD/1_Optimize_OS_for_WVD.ps1"
           },
           {
             "type": "WindowsRestart",
             "restartCheckCommand": "write-host 'restarting post Optimizations'",
             "restartTimeout": "5m"
-          },
-          {
-            "type": "PowerShell",
-            "name": "Install Teams",
-            "runElevated": true,
-            "runAsSystem": true,
-            "scriptUri": "https://raw.githubusercontent.com/danielsollondon/azvmimagebuilder/master/solutions/14_Building_Images_AVD/2_installTeams.ps1"
-          },
-          {
-            "type": "WindowsRestart",
-            "restartCheckCommand": "write-host 'restarting post Teams Install'",
-            "restartTimeout": "5m"
-          },
-          {
-            "type": "WindowsUpdate",
-            "searchCriteria": "IsInstalled=0",
-            "filters": [
-              "exclude:$_.Title -like '*Preview*'",
-              "include:$true"
-            ],
-            "updateLimit": 40
           }
         ],
         "distribute": [
@@ -125,7 +104,9 @@
               "source": "avd10",
               "baseosimg": "windows10"
             },
-            "replicationRegions": []
+            "replicationRegions": [
+              "westeurope"
+            ]
           }
         ]
       }

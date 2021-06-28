@@ -65,6 +65,7 @@ resource avdid 'Microsoft.Compute/galleries/images@2019-07-01' = {
   name: '${avdsig.name}/${imageDefinitionName}'
   location: sigLocation
   properties: {
+
     osType: 'Windows'
     osState: 'Generalized'
     identifier: {
@@ -82,9 +83,10 @@ resource avdid 'Microsoft.Compute/galleries/images@2019-07-01' = {
         max: 64
       }
     }
-    hyperVGeneration: 'V2'
+    hyperVGeneration: 'V1'
   }
   tags: {}
+
 }
 
 output avdidoutput string = avdid.id

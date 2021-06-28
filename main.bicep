@@ -38,7 +38,7 @@ param sigName string = 'BicepavdSIG'
 param imageDefinitionName string = 'BicepAIBavdImage'
 param imagePublisher string = 'MicrosoftWindowsDesktop'
 param imageOffer string = 'windows-10'
-param imageSKU string = '21h1-evd-g2'
+param imageSKU string = '21h1-evd'
 param uamiName string = '${'AIBUser'}${utcNow()}'
 
 //Define Azure Image Builder Parameters
